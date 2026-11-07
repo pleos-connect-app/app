@@ -1,0 +1,58 @@
+# ---------- Build outputs ----------
+build/
+.gradle/
+.kotlin/
+.externalNativeBuild/
+.cxx/
+/captures
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+output-metadata.json
+app/release/
+app/debug/
+
+# ---------- Local machine config ----------
+local.properties
+*.iml
+.DS_Store
+Thumbs.db
+
+# ---------- IDE (Android Studio / IntelliJ) ----------
+# Share code style only; everything else is per-user
+.idea/*
+!.idea/codeStyles/
+.vscode/
+.fleet/
+
+# ---------- Secrets / signing (NEVER commit) ----------
+*.jks
+*.keystore
+*.p12
+*.pem
+*.key
+keystore.properties
+signing.properties
+secrets.properties
+secret.properties
+*.env
+.env*
+google-services.json
+GoogleService-Info.plist
+# Pleos / vendor credentials, API keys
+**/pleos-credentials*
+**/apikey*.properties
+
+# ---------- Logs / misc ----------
+*.log
+*.hprof
+*.tmp
+*.swp
+*~
+
+# ---------- Claude Code (keep shared skills, ignore personal settings) ----------
+.claude/settings.local.json
+.claude/worktrees/
+CLAUDE.local.md
