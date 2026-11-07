@@ -36,7 +36,7 @@ docs/pleos/
 
 ## 미수집 범위
 
-- Connect SDK API 레퍼런스 (Vehicle, NaviHelper, SpeechToText, TextToSpeech, FusedLocation, LLM — 약 1,900페이지): 필요 시 `https://document.pleos.ai/docs/pleos-only/connect-sdk-pleos/<SDK>` 직접 조회.
+- Connect SDK: **NaviHelper·FusedLocation 가이드는 `raw/pleos-only/connect-sdk-pleos/`에 수집**. 단 API Reference(Dokka) 페이지는 로그인 필요로 본문이 비어 있음 → 시그니처는 AAR을 javap로 확인(결과는 `docs/product/scenario-v0-validation.md`). Vehicle·STT·TTS·LLM SDK는 미수집.
 - 디자인 가이드의 많은 내용이 이미지(SVG/PNG)로만 제공됨 → raw 파일의 이미지 URL 참고. 특히 **컬러 토큰/hex, 타입 스케일, easing·duration, 해상도·dp 그리드, 컴포넌트 크기·radius는 텍스트에 없음** (지어내지 말 것). 원본 Figma: `https://document.pleos.ai/img/Pleos_Connect_design_assets_215.fig`, `https://document.pleos.ai/img/Pleos_Connect_display_guide_215.fig`, `https://document.pleos.ai/img/policy/Pleos-Connect-CCP-UX-guideline-20260220.fig`.
 - 원문 간 불일치(스크린샷 크기 840x121 vs 840x1212, Connect-S 14.5 vs 14.6인치 등)는 각 wiki에 표기됨.
 
