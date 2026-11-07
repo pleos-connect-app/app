@@ -86,6 +86,21 @@ MVP 명세 §5 "선행 검증 필요" 항목과, v0 시나리오가 의존하는
 - 데모에서 "주행 중엔 앱이 조작을 요구하지 않는다"(MVP F-06)를 보여주고 싶으면, D + ACCEL로 **차단 화면 + Driving view TBT**를 시연하는 것이 오히려 가이드 준수의 좋은 증거가 된다.
 - 주행 중 기록 상태 표시(F-06)를 원하면 DO 선언이 필요하며 카테고리 결정이 선행돼야 함 (v1).
 
+### 2.2 내비 현재 위치 변경 방법 조사 (결론: 공개된 방법 없음)
+
+| 조사 대상 | 결과 |
+|---|---|
+| Pleos Connect 문서 전체(가이드·심사·개발·테스트·디자인, 수집분 200여 페이지) | 내비 위치 변경/모의 주행 관련 기재 **없음**. 에뮬레이터 Extended Controls는 마이크 설정 용도로만 언급 |
+| Virtual Console (Emulation Controls 48개 카드) | 위치/GPS 카드 **없음**. D+ACCEL 주행해도 내비 위치 고정 |
+| `adb emu geo fix` | FusedLocation에는 반영, **내비에는 미반영** |
+| NaviHelper SDK 3.0.5 (javap) | 위치 설정 API 없음. 단 `NaviMode.SIMULATION_GUIDING` 상수 존재 → 내비 엔진에 모의 안내 모드는 있으나 **시작하는 공개 API 없음** (`InternalApi`는 `updateOccupiedRegion(Rect)`만) |
+| Pleos 내비 앱 UI (v3.3.2-rc5-hotfix.3) | 설정(경로·충전소·사운드·알림·데이터 관리·버전), 목적지 상세(경유지로/목적지로), 경로 미리보기(대안 3개 + 안내 시작) 모두 확인 — **모의 주행 버튼 없음** |
+| Pleos Platform SDK `ai.pleos.location` (Replay·DLT API 보유) | `signature|privileged` 권한 → 3rd-party Connect 앱 사용 불가. 별도 제품군 문서 |
+
+**결론**: 내비 출발지는 에뮬레이터에서 37.4127, 127.0947(성남 수정구 시흥동)로 고정이며, 이를 바꾸거나 모의 주행으로 도착 이벤트를 만드는 공개 방법은 없다. → Pleos 기술지원(partnership@pleos.ai)에 문의하거나, v0는 §3의 대응(서사는 서울역 유지 + `여행 종료` 버튼)으로 진행.
+
+**주의 (Virtual Console 조작)**: 기어 P 복귀는 반드시 **Drive status 패널의 P 버튼**으로 할 것. 다른 P 버튼(Emulation Controls 카드 등)을 누르면 콘솔 표시는 P로 바뀌어도 차량은 D로 계속 주행하는 상태가 남는 것을 확인함. BRAKE로 0km/h 만든 뒤 Drive status의 P 클릭 → 클러스터에 P·0km/h 확인.
+
 ## 3. 시나리오 단계별 실현 가능성
 
 | 단계 | 판정 | 비고 |
@@ -192,7 +207,7 @@ GET /s/{shareToken}   // 휴대폰용 공유 페이지 (HTML)
 | 항목 | 다음 행동 |
 |---|---|
 | 도착 이벤트(`onDestinationArrived`)·경유지 이벤트 | Virtual Console 주행으로도 내비 위치가 안 움직임(실측) → 내비 앱 자체 모의 주행 기능 확인, Pleos 기술지원 문의, 또는 실차 검증 |
-| 내비 현재 위치 변경 방법 | 내비 앱 설정·Virtual Console·문의로 확인 (서울역 출발 연출용) |
+| 내비 현재 위치 변경 방법 | 공개 방법 없음(§2.2 조사 완료) → Pleos 기술지원 문의 |
 | SDK 오류 코드 재현 | 실차 또는 Pleos 문의. 앱은 사전 검증으로 대체 |
 | SDK 권한 신청(V17) | Pleos Console My Project에서 NaviHelper/FusedLocation 신청 필요 여부 확인 |
 | 장시간 백그라운드 위치 기록 | v1 범위. 백그라운드 수집 정책은 Pleos 문서가 보장하지 않음(FusedLocation 문서 명시) |
