@@ -56,6 +56,36 @@ MVP 명세 §5 "선행 검증 필요" 항목과, v0 시나리오가 의존하는
 | V16 | ✅(설계) | QR은 앱에서 공유 URL로 로컬 생성(ZXing core 등 순수 Java 라이브러리, GMS 불필요). 표시는 주차 중이므로 규제 대상 아님(규제표의 "QR 로그인"과 다름). 스마트폰 열람은 서버 공유 페이지 구현 범위. |
 | V17 | ❓ | 앱 제출 항목에 "SDK 추가 권한: 권한 신청이 필요한 SDK를 사용하는 앱일 경우 프로젝트 ID 입력"이 있음. NaviHelper/FusedLocation이 신청 대상인지 문서상 불명 → Pleos Console(My Project)에서 확인 필요. 에뮬레이터 개발에는 신청 없이 동작. |
 
+### 2.1 Virtual Console 주행 시뮬레이션 실측 (추가 검증)
+
+공식 문서: [Virtual Console 셋업](../pleos/raw/connect/guide/getting-started/application-development/use-vehicle-emulator.md), [사용 가이드](../pleos/raw/pleos-only/app-test-guide/virtual-console-guide.md).
+접속: `adb forward tcp:8088 tcp:8088` → `http://127.0.0.1:8088/` (에뮬레이터 v2.1.0 이상).
+
+**화면 구성 (실측)**
+- 상단: 주행 시각화(Highway/Forest 테마, 1·3인칭 — 테마 변경은 P에서만), 가속도 표시
+- 우측 Drive status: 속도 + 기어 버튼 **P/R/N/D**
+- 하단 조작부: **ACCEL / BRAKE 버튼(누르고 있는 동안 동작)**, Steering 슬라이더
+- Systems / Climate / Body 요약 패널: 와이퍼, 앰비언트, ETCS, 공조, 도어·창문
+- **Emulation Controls**(48 features · 7 domains): Vehicle·Motion·ADAS·Convenience·Safety·Energy·Climate 카드로 VHAL 값 publish — 문서 표와 일치
+- 하단 상태: `DDS ONLINE`, AVD 연동 토글
+
+**주행 시험 결과** (목적지 남한산성 안내 중 → D + ACCEL 8초, 최고 135km/h)
+
+| 확인 항목 | 결과 |
+|---|---|
+| 주행 상태 전환 | ✅ 클러스터/Driving view에 속도·D 표시, Driving view에 TBT("80m 좌회전") 표시 |
+| DO 미선언 앱 차단 | ✅ 앱 영역이 **"주행 중에는 사용할 수 없습니다."** 시스템 화면으로 교체됨 (probe 앱 = DO 미선언) |
+| 차단 중 앱 프로세스 | ✅ 화면은 막혀도 프로세스는 살아 있고 NaviHelper 콜백 수신 지속 |
+| CarUxRestrictions | `dumpsys car_service`: parked → 0x0, unknown → 0x1ff (주행 시 제한 플래그 적용) |
+| **내비 위치 이동** | ❌ 속도를 내도 내비 현재 위치는 시흥동 고정 → **Virtual Console로는 도착 이벤트(`onDestinationArrived`) 재현 불가** |
+| 위치 관련 카드 | ❌ GPS/위치 주입 카드 없음. 위치는 `adb emu geo fix`(FusedLocation에만 반영)로만 가능 |
+| 복귀 | BRAKE 유지 → P 클릭 → 0km/h, Parked |
+
+**시나리오 영향**
+- v0 데모는 전 과정을 **P에서 진행**해야 함. 주행 중(D)에 앱을 열면 차단 화면이 뜨므로, `여행 종료`·QR 화면도 P로 돌아온 뒤 보여준다.
+- 데모에서 "주행 중엔 앱이 조작을 요구하지 않는다"(MVP F-06)를 보여주고 싶으면, D + ACCEL로 **차단 화면 + Driving view TBT**를 시연하는 것이 오히려 가이드 준수의 좋은 증거가 된다.
+- 주행 중 기록 상태 표시(F-06)를 원하면 DO 선언이 필요하며 카테고리 결정이 선행돼야 함 (v1).
+
 ## 3. 시나리오 단계별 실현 가능성
 
 | 단계 | 판정 | 비고 |
@@ -161,7 +191,7 @@ GET /s/{shareToken}   // 휴대폰용 공유 페이지 (HTML)
 
 | 항목 | 다음 행동 |
 |---|---|
-| 도착 이벤트(`onDestinationArrived`)·경유지 이벤트 | 내비 앱 설정에서 모의 주행 기능 확인, 또는 Pleos 기술지원/실차 검증 |
+| 도착 이벤트(`onDestinationArrived`)·경유지 이벤트 | Virtual Console 주행으로도 내비 위치가 안 움직임(실측) → 내비 앱 자체 모의 주행 기능 확인, Pleos 기술지원 문의, 또는 실차 검증 |
 | 내비 현재 위치 변경 방법 | 내비 앱 설정·Virtual Console·문의로 확인 (서울역 출발 연출용) |
 | SDK 오류 코드 재현 | 실차 또는 Pleos 문의. 앱은 사전 검증으로 대체 |
 | SDK 권한 신청(V17) | Pleos Console My Project에서 NaviHelper/FusedLocation 신청 필요 여부 확인 |
