@@ -101,6 +101,15 @@ MVP 명세 §5 "선행 검증 필요" 항목과, v0 시나리오가 의존하는
 
 **주의 (Virtual Console 조작)**: 기어 P 복귀는 반드시 **Drive status 패널의 P 버튼**으로 할 것. 다른 P 버튼(Emulation Controls 카드 등)을 누르면 콘솔 표시는 P로 바뀌어도 차량은 D로 계속 주행하는 상태가 남는 것을 확인함. BRAKE로 0km/h 만든 뒤 Drive status의 P 클릭 → 클러스터에 P·0km/h 확인.
 
+### 2.3 공모전 운영사무국 1차 답변 (2026-11-10)
+
+| 문의 | 답변 | 반영 |
+|---|---|---|
+| 내비 위치 변경 | 에뮬레이터 내비가 가상 GPS를 인식하지 않는 **알려진 문제**. `LocationManager`로는 가상 GPS 정상 수신 | 실측 재확인: `adb emu geo fix` 후 `dumpsys location`의 **gps/fused provider 모두 서울역 좌표** 수신. → 앱의 위치 기록·도착 판정은 `LocationManager`(또는 FusedLocation) 기반으로 에뮬레이터에서 구현·시연 가능. 내비 출발지·내비 도착 이벤트는 여전히 불가 |
+| 앱 내 지도 | Pleos 단말에서 **GMS·Google Maps SDK 사용 불가** (에뮬레이터만의 문제 아님) | 지도는 WebView + 비-Google 지도(예: 오픈소스 타일/정적 지도 이미지) 또는 서버 렌더 이미지 |
+| 심사·시연 | 최종 PT는 실차 교신 불필요. **에뮬레이터에서 정상 빌드·무오류 구동되는 APK로 시연** | 시연 기준 = 에뮬레이터. 도착 이벤트에 의존하는 기능은 앱 자체 판정으로 대체 |
+| 오류 코드 조건 / SDK 권한 신청 / 모의 안내 | 공식 확인 후 추가 안내 예정 | 대기 |
+
 ## 3. 시나리오 단계별 실현 가능성
 
 | 단계 | 판정 | 비고 |
@@ -207,7 +216,7 @@ GET /s/{shareToken}   // 휴대폰용 공유 페이지 (HTML)
 | 항목 | 다음 행동 |
 |---|---|
 | 도착 이벤트(`onDestinationArrived`)·경유지 이벤트 | Virtual Console 주행으로도 내비 위치가 안 움직임(실측) → 내비 앱 자체 모의 주행 기능 확인, Pleos 기술지원 문의, 또는 실차 검증 |
-| 내비 현재 위치 변경 방법 | 공개 방법 없음(§2.2 조사 완료) → Pleos 기술지원 문의 |
+| 내비 현재 위치 변경 방법 | 운영사무국 확인: 에뮬레이터 내비의 알려진 문제(§2.3). 앱 위치는 `LocationManager`로 수신 가능 |
 | SDK 오류 코드 재현 | 실차 또는 Pleos 문의. 앱은 사전 검증으로 대체 |
 | SDK 권한 신청(V17) | Pleos Console My Project에서 NaviHelper/FusedLocation 신청 필요 여부 확인 |
 | 장시간 백그라운드 위치 기록 | v1 범위. 백그라운드 수집 정책은 Pleos 문서가 보장하지 않음(FusedLocation 문서 명시) |
