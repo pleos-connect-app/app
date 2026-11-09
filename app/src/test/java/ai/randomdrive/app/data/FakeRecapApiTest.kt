@@ -59,4 +59,19 @@ class FakeRecapApiTest {
             assertEquals(ApiException.CODE_NO_CANDIDATE, e.code)
         }
     }
+
+    @Test fun `앱 재시작(새 인스턴스) 후 finish를 다시 보내면 복구`() = runTest {
+        val tripId = api.randomDestination(37.5547, 126.9707, 50, demo = true).tripId
+        val restarted = FakeRecapApi({ candidates }, latencyMs = 0)
+        try {
+            restarted.getRecap(tripId)
+            fail()
+        } catch (e: ApiException) {
+            assertEquals("TRIP_NOT_FOUND", e.code)
+        }
+        val pts = listOf(TrackPoint(37.5547, 126.9707, 0), TrackPoint(37.4786, 127.1817, 60_000))
+        restarted.finishTrip(tripId, FinishTripRequest(0, 60_000, pts, emptyList()))
+        repeat(2) { restarted.getRecap(tripId) }
+        assertEquals(RecapStatus.DONE, restarted.getRecap(tripId).status)
+    }
 }

@@ -184,7 +184,14 @@ class MainViewModel(app: Application, private val c: AppContainer) : AndroidView
         viewModelScope.launch {
             val started = System.currentTimeMillis()
             val result = runCatching {
-                c.api.randomDestination(loc.point.lat, loc.point.lng, radiusKm, demo = c.demoMode, excludePlaceIds = seen)
+                // 실서버 계약에는 제외 목록이 없어 같은 곳이 다시 나올 수 있다 → 최대 3번까지 다시 요청.
+                var r = c.api.randomDestination(loc.point.lat, loc.point.lng, radiusKm, demo = c.demoMode, excludePlaceIds = seen)
+                var tries = 1
+                while (r.destination.placeId in seen && tries < MAX_REROLL_TRIES) {
+                    r = c.api.randomDestination(loc.point.lat, loc.point.lng, radiusKm, demo = c.demoMode, excludePlaceIds = seen)
+                    tries++
+                }
+                r
             }
             // 추첨 연출은 최소 1.2초 (너무 짧으면 "랜덤" 느낌이 안 남, 길면 지루함)
             delay((MIN_DRAW_MS - (System.currentTimeMillis() - started)).coerceAtLeast(0))
@@ -245,6 +252,7 @@ class MainViewModel(app: Application, private val c: AppContainer) : AndroidView
             ),
         )
         TripRecordingService.start(getApplication())
+        stopHomeLocation()
         viewModelScope.launch {
             when (val res = c.navi.requestRoute(r.destination)) {
                 is RouteResult.Started -> {
@@ -252,11 +260,12 @@ class MainViewModel(app: Application, private val c: AppContainer) : AndroidView
                         TripEvent(TripEventType.DESTINATION_SET, System.currentTimeMillis(), r.origin.lat, r.origin.lng, r.destination.name),
                     )
                     preTrip.value = PreTrip.Home
+                    location.value = LocationState.Loading // 여행 후 홈으로 돌아오면 출발지를 새로 확인
                     Log.i(TAG, "route started ${res.distanceM}m ${res.durationS}s")
                 }
                 is RouteResult.Failed -> {
-                    TripRecordingService.stop(getApplication())
-                    c.tripStore.clear()
+                    c.tripStore.clear() // 기록 서비스는 세션이 사라진 것을 보고 스스로 멈춘다
+                    startHomeLocation()
                     preTrip.value = r.copy(sending = false, sendError = res.reason.message())
                 }
             }
@@ -282,16 +291,17 @@ class MainViewModel(app: Application, private val c: AppContainer) : AndroidView
     fun endTrip() {
         val s = c.tripStore.session.value ?: return
         if (s.phase != TripPhase.RECORDING && s.phase != TripPhase.ARRIVED) return
-        TripRecordingService.stop(getApplication())
+        // 단계가 FINISHING으로 바뀌면 기록 서비스가 스스로 멈춘다.
         c.tripStore.update { it.copy(phase = TripPhase.FINISHING, endedAt = it.endedAt ?: System.currentTimeMillis()) }
         runFinish()
     }
 
     /** 기록을 버리고 처음으로(리캡 만들지 않음). 내비 안내는 건드리지 않는다. */
     fun discardTrip() {
-        TripRecordingService.stop(getApplication())
         finishJob?.cancel()
         c.tripStore.clear()
+        finish.value = FinishState.Uploading
+        location.value = LocationState.Loading
         preTrip.value = PreTrip.Home
         startHomeLocation()
     }
@@ -301,66 +311,89 @@ class MainViewModel(app: Application, private val c: AppContainer) : AndroidView
     private fun runFinish() {
         if (finishJob?.isActive == true) return
         finishJob = viewModelScope.launch {
-            val s = c.tripStore.session.value ?: return@launch
-            finish.value = FinishState.Uploading
-            val points = withContext(Dispatchers.IO) { buildUploadPoints(s) }
-            if (points.size < 2) {
-                finish.value = FinishState.Error("기록된 경로가 없어 리캡을 만들 수 없어요. 위치 권한과 GPS를 확인해 주세요", canRetry = false)
-                return@launch
+            try {
+                finishFlow()
+            } catch (e: ApiException) {
+                Log.w(TAG, "finish failed: ${e.code} ${e.message}")
+                finish.value = FinishState.Error(
+                    if (e.code == ApiException.CODE_NETWORK) "인터넷 연결을 확인해 주세요" else "서버 오류: ${e.message}",
+                    // 4xx라도 기록은 기기에 남아 있으니 다시 시도는 항상 열어 둔다.
+                    canRetry = true,
+                )
             }
-            val endedAt = s.endedAt ?: System.currentTimeMillis()
-            val local = localSummary(s, points, endedAt)
-            c.tripStore.update { it.copy(localSummary = local) }
-
-            if (!s.finishAccepted) {
-                val req = FinishTripRequest(s.startedAt, endedAt, points, s.events)
-                val accepted = withRetry { c.api.finishTrip(s.tripId, req) }
-                if (accepted == null) return@launch
-                c.tripStore.update { it.copy(finishAccepted = true) }
-            }
-
-            finish.value = FinishState.Generating
-            val deadline = System.currentTimeMillis() + RECAP_TIMEOUT_MS
-            while (System.currentTimeMillis() < deadline) {
-                foreground.first { it } // 백그라운드에서는 폴링 중단
-                val recap = withRetry { c.api.getRecap(s.tripId) } ?: return@launch
-                when (recap.status) {
-                    RecapStatus.DONE -> {
-                        c.tripStore.update { it.copy(phase = TripPhase.DONE, shareUrl = recap.shareUrl, summary = recap.summary) }
-                        return@launch
-                    }
-                    RecapStatus.FAILED -> {
-                        finish.value = FinishState.Error("리캡 영상을 만들지 못했어요", canRetry = true)
-                        c.tripStore.update { it.copy(finishAccepted = false) } // 다시 시도하면 재업로드
-                        return@launch
-                    }
-                    RecapStatus.PENDING, RecapStatus.RUNNING -> delay(POLL_INTERVAL_MS)
-                }
-            }
-            finish.value = FinishState.Error("리캡 생성이 오래 걸리고 있어요. 잠시 후 다시 확인해 주세요", canRetry = true)
         }
     }
 
-    /** 재시도 가능한 오류는 최대 3번(1s, 2s, 4s 간격) 다시 시도. 최종 실패 시 Error 상태로 바꾸고 null. */
-    private suspend fun <T> withRetry(block: suspend () -> T): T? {
+    private suspend fun finishFlow() {
+        val s = c.tripStore.session.value ?: return
+        finish.value = FinishState.Uploading
+        val points = withContext(Dispatchers.IO) { buildUploadPoints(s) }
+        if (points.size < 2) {
+            finish.value = FinishState.Error("기록된 경로가 없어 리캡을 만들 수 없어요. 위치 권한과 GPS를 확인해 주세요", canRetry = false)
+            return
+        }
+        val endedAt = s.endedAt ?: System.currentTimeMillis()
+        c.tripStore.update { it.copy(localSummary = localSummary(s, points, endedAt)) }
+        val request = FinishTripRequest(s.startedAt, endedAt, points, s.events)
+
+        suspend fun upload() {
+            finish.value = FinishState.Uploading
+            withRetry { c.api.finishTrip(s.tripId, request) }
+            c.tripStore.update { it.copy(finishAccepted = true) }
+            finish.value = FinishState.Generating
+        }
+        if (c.tripStore.session.value?.finishAccepted != true) upload()
+
+        finish.value = FinishState.Generating
+        var reuploaded = false
+        var polls = 0
+        // 최대 대기 시간은 "화면이 보이는 동안의 조회 횟수"로 센다(백그라운드에 있던 시간은 빼고).
+        while (polls < MAX_RECAP_POLLS) {
+            foreground.first { it } // 백그라운드에서는 폴링 중단
+            val recap = try {
+                withRetry { c.api.getRecap(s.tripId) }
+            } catch (e: ApiException) {
+                // 서버(또는 앱 내장 가짜 서버)가 재시작돼 trip을 잃었으면 한 번은 다시 올려 본다.
+                if (e.code == CODE_TRIP_NOT_FOUND && !reuploaded) {
+                    reuploaded = true
+                    upload()
+                    continue
+                }
+                throw e
+            }
+            polls++
+            when (recap.status) {
+                RecapStatus.DONE -> {
+                    c.tripStore.update { it.copy(phase = TripPhase.DONE, shareUrl = recap.shareUrl, summary = recap.summary) }
+                    return
+                }
+                RecapStatus.FAILED -> {
+                    // 다시 시도하면 finish를 다시 보낸다. 서버가 FAILED 상태에서 재생성을 지원해야 함(서버 작업 요청서 3-5).
+                    c.tripStore.update { it.copy(finishAccepted = false) }
+                    finish.value = FinishState.Error("리캡 영상을 만들지 못했어요", canRetry = true)
+                    return
+                }
+                RecapStatus.PENDING, RecapStatus.RUNNING -> delay(POLL_INTERVAL_MS)
+            }
+        }
+        finish.value = FinishState.Error("리캡 생성이 오래 걸리고 있어요. 잠시 후 다시 확인해 주세요", canRetry = true)
+    }
+
+    /** 재시도 가능한 오류(네트워크·5xx)는 1s, 2s 간격으로 최대 3번 시도. 마지막 오류는 그대로 던진다. */
+    private suspend fun <T> withRetry(block: suspend () -> T): T {
         var wait = 1_000L
-        repeat(3) { attempt ->
+        var attempt = 1
+        while (true) {
             try {
                 return block()
             } catch (e: ApiException) {
-                Log.w(TAG, "api failed (attempt ${attempt + 1}): ${e.code} ${e.message}")
-                if (!e.retryable || attempt == 2) {
-                    finish.value = FinishState.Error(
-                        if (e.code == ApiException.CODE_NETWORK) "인터넷 연결을 확인해 주세요" else "서버 오류: ${e.message}",
-                        canRetry = e.retryable || e.code == ApiException.CODE_NETWORK,
-                    )
-                    return null
-                }
+                Log.w(TAG, "api failed (attempt $attempt): ${e.code} ${e.message}")
+                if (!e.retryable || attempt >= 3) throw e
                 delay(wait)
                 wait *= 2
+                attempt++
             }
         }
-        return null
     }
 
     private fun buildUploadPoints(s: TripSession): List<TrackPoint> {
@@ -386,6 +419,7 @@ class MainViewModel(app: Application, private val c: AppContainer) : AndroidView
         finishJob?.cancel()
         c.tripStore.clear()
         finish.value = FinishState.Uploading
+        location.value = LocationState.Loading
         preTrip.value = PreTrip.Home
         startHomeLocation()
     }
@@ -399,7 +433,9 @@ class MainViewModel(app: Application, private val c: AppContainer) : AndroidView
         private const val MIN_DRAW_MS = 1_200L
         private const val MIN_ROUTE_KM = 0.5
         private const val POLL_INTERVAL_MS = 2_000L
-        private const val RECAP_TIMEOUT_MS = 3 * 60_000L
+        private const val MAX_RECAP_POLLS = 90 // 2초 × 90 = 화면이 보이는 동안 약 3분
+        private const val MAX_REROLL_TRIES = 3
+        private const val CODE_TRIP_NOT_FOUND = "TRIP_NOT_FOUND"
         val RADIUS_OPTIONS = CandidatePicker.RADIUS_OPTIONS_KM
     }
 }

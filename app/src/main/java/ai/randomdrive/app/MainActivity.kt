@@ -91,7 +91,8 @@ class MainActivity : ComponentActivity() {
                                 FinishingScreen(s, state.finish, vm::retryFinish, vm::discardTrip)
                             }
                             else -> {
-                                BackHandler { vm.newTrip() }
+                                // Back으로 리캡(QR)을 지우지 않는다. 지우는 건 "새 여행 시작" 버튼만.
+                                BackHandler { moveTaskToBack(true) }
                                 RecapScreen(s, vm::newTrip)
                             }
                         }

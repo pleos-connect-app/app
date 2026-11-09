@@ -183,6 +183,10 @@ fun TripScreen(s: TripSession, onShowNavi: () -> Unit, onEnd: () -> Unit, onDisc
                 val end = s.endedAt ?: now
                 Body("${s.originLabel} 출발 · ${formatElapsed(end - s.startedAt)}")
                 Body("기록한 위치 ${s.pointCount}개 · 이벤트 ${s.events.size}개", muted = true)
+                val lastFix = s.lastPointAt ?: s.startedAt
+                if (!arrived && now - lastFix > NO_FIX_WARNING_MS) {
+                    Body("위치 신호를 받지 못하고 있어요. 위치 설정을 확인해 주세요", error = true)
+                }
                 if (arrived) {
                     Body(
                         if (s.arrivalSource == ArrivalSource.NAVI_EVENT) "내비게이션이 도착을 알려왔어요" else "목적지 근처에 도착한 것을 확인했어요",
@@ -285,6 +289,8 @@ fun RecapScreen(s: TripSession, onNewTrip: () -> Unit) {
         },
     )
 }
+
+private const val NO_FIX_WARNING_MS = 30_000L
 
 // ---------------- 포맷 ----------------
 

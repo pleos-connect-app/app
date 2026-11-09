@@ -79,6 +79,7 @@ class FakeRecapApi(
 
     override suspend fun getRecap(tripId: String): Recap {
         delay(latencyMs)
+        // 앱 재시작으로 메모리 trip이 사라졌으면 404 → 앱이 finish를 다시 보낸다(실서버도 같은 경로로 복구됨).
         val trip = trips[tripId] ?: throw ApiException("TRIP_NOT_FOUND", "trip not found: $tripId", 404)
         synchronized(trip) {
             if (!trip.finished) return Recap(tripId, RecapStatus.PENDING, null, null, null)

@@ -3,13 +3,20 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
-// 서버 연결 설정. 기본은 앱 내장 가짜 서버(FakeRecapApi)라 서버 없이도 전체 흐름이 동작한다.
+// 서버 연결 설정. debug 기본은 앱 내장 가짜 서버(FakeRecapApi)라 서버 없이도 전체 흐름이 동작한다.
+// release는 가짜 서버를 쓰지 않는다(심사: 더미 데이터 금지) → randomdrive.releaseServerBaseUrl(https) 필수.
 //   ./gradlew installDebug -Prandomdrive.useFakeServer=false -Prandomdrive.serverBaseUrl=http://10.0.2.2:8080
 //   -Prandomdrive.demoMode=true  → 추첨 결과를 시연용 목적지(남한산성)로 고정
 fun prop(name: String, default: String) = (project.findProperty(name) as String?) ?: default
 val useFakeServer = prop("randomdrive.useFakeServer", "true").toBoolean()
 val serverBaseUrl = prop("randomdrive.serverBaseUrl", "http://10.0.2.2:8080")
 val demoMode = prop("randomdrive.demoMode", "false").toBoolean()
+val releaseServerBaseUrl = prop("randomdrive.releaseServerBaseUrl", "")
+if (gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) } &&
+    !releaseServerBaseUrl.startsWith("https://")
+) {
+    throw GradleException("release 빌드에는 -Prandomdrive.releaseServerBaseUrl=https://... 가 필요합니다")
+}
 
 android {
     namespace = "ai.randomdrive.app"
@@ -25,13 +32,18 @@ android {
         versionName = "0.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("boolean", "USE_FAKE_SERVER", useFakeServer.toString())
-        buildConfigField("String", "SERVER_BASE_URL", "\"$serverBaseUrl\"")
-        buildConfigField("boolean", "DEMO_MODE", demoMode.toString())
     }
 
     buildTypes {
+        debug {
+            buildConfigField("boolean", "USE_FAKE_SERVER", useFakeServer.toString())
+            buildConfigField("String", "SERVER_BASE_URL", "\"$serverBaseUrl\"")
+            buildConfigField("boolean", "DEMO_MODE", demoMode.toString())
+        }
         release {
+            buildConfigField("boolean", "USE_FAKE_SERVER", "false")
+            buildConfigField("String", "SERVER_BASE_URL", "\"$releaseServerBaseUrl\"")
+            buildConfigField("boolean", "DEMO_MODE", "false")
             optimization {
                 enable = true
                 packageScope = setOf("androidx.**", "kotlin.**", "kotlinx.**")

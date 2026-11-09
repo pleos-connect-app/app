@@ -36,4 +36,6 @@ data class TripSession(
     /** 앱이 계산한 요약(서버 요약이 없을 때 표시). */
     val localSummary: RecapSummary? = null,
     val pointCount: Int = 0,
+    /** 마지막 GPS 수신 시각(epoch ms). 여행 화면의 "위치 수신 없음" 경고용. */
+    val lastPointAt: Long? = null,
 )

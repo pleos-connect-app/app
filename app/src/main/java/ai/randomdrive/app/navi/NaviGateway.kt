@@ -15,6 +15,7 @@ import ai.pleos.playground.navi.data.TripInfo
 import ai.pleos.playground.navi.data.TripRequest
 import ai.pleos.playground.navi.data.WaypointArrivedInfo
 import ai.pleos.playground.navi.data.WaypointChangedInfo
+import ai.pleos.playground.navi.data.WaypointInfo
 import ai.pleos.playground.navi.helper.NaviHelper
 import ai.pleos.playground.navi.helper.listener.NaviHelperEventListener
 import ai.randomdrive.app.domain.Destination
@@ -39,10 +40,14 @@ sealed interface NaviEvent {
     data object RouteCancelled : NaviEvent
     data class DestinationArrived(val name: String) : NaviEvent
     data class WaypointAdded(val name: String?) : NaviEvent
+    /** getWaypointInfo() 응답. 경유지 좌표는 이 이벤트로만 알 수 있다(WaypointChanged/Arrived에는 좌표 없음). */
+    data class Waypoints(val items: List<WaypointPoint>) : NaviEvent
     data class WaypointArrived(val name: String) : NaviEvent
     data class Error(val code: NaviErrorCode) : NaviEvent
     data class Trip(val distanceM: Int, val etaS: Int) : NaviEvent
 }
+
+data class WaypointPoint(val name: String, val lat: Double, val lng: Double)
 
 enum class NaviConnection { CONNECTING, CONNECTED, FAILED }
 
@@ -80,6 +85,8 @@ class NaviGateway(context: Context) {
         }
         override fun onWayPointArrived(waypointArrivedInfo: WaypointArrivedInfo) =
             emit(NaviEvent.WaypointArrived(waypointArrivedInfo.name))
+        override fun onWayPointInfo(waypointInfoList: List<WaypointInfo>) =
+            emit(NaviEvent.Waypoints(waypointInfoList.map { WaypointPoint(it.name, it.latitude, it.longitude) }))
         override fun onError(errorCode: NaviErrorCode) = emit(NaviEvent.Error(errorCode))
         override fun onTripInfo(tripInfo: TripInfo) = emit(NaviEvent.Trip(tripInfo.distance, tripInfo.eta))
 
@@ -149,8 +156,11 @@ class NaviGateway(context: Context) {
         }
     }
 
-    /** 목적지 전달. onRouteStarted 또는 onError를 기다린다. */
-    suspend fun requestRoute(d: Destination, timeoutMs: Long = 8_000): RouteResult {
+    /**
+     * 목적지 전달. onRouteStarted 또는 onError를 기다린다.
+     * 에뮬레이터 실측: requestRoute → onRouteStarted까지 약 7초(내비 trip 생성 포함) → 여유 있게 20초.
+     */
+    suspend fun requestRoute(d: Destination, timeoutMs: Long = 20_000): RouteResult {
         if (!awaitConnected(3_000)) return RouteResult.Failed(RouteFailure.NOT_CONNECTED)
         val outcome = withTimeoutOrNull(timeoutMs) {
             val waiter = async(start = CoroutineStart.UNDISPATCHED) {
@@ -176,7 +186,12 @@ class NaviGateway(context: Context) {
                 waiter.await()
             }
         }
-        return outcome ?: RouteResult.Failed(RouteFailure.TIMEOUT)
+        if (outcome == null) {
+            // 시간 초과 뒤 늦게 안내가 시작되면 기록 없이 안내만 도는 상태가 되므로 요청을 취소해 둔다.
+            cancelRoute()
+            return RouteResult.Failed(RouteFailure.TIMEOUT)
+        }
+        return outcome
     }
 
     private fun NaviErrorCode.toRouteResult(): RouteResult? = when (this) {
@@ -191,6 +206,11 @@ class NaviGateway(context: Context) {
     fun showNavigation() {
         runCatching { navi.requestNavigationScreen(NavigationScreenRequest.Foreground) }
             .onFailure { Log.w(TAG, "requestNavigationScreen failed", it) }
+    }
+
+    /** 경유지 목록(좌표 포함) 요청 → NaviEvent.Waypoints로 응답. */
+    fun requestWaypoints() {
+        runCatching { navi.getWaypointInfo() }.onFailure { Log.w(TAG, "getWaypointInfo failed", it) }
     }
 
     fun cancelRoute() {

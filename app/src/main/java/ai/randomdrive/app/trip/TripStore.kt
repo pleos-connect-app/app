@@ -46,7 +46,7 @@ class TripStore(dir: File) {
         val cur = _session.value ?: return
         pointsFile.appendText("${p.ts},${p.lat},${p.lng}\n")
         // pointCount는 화면 표시용. 매 점마다 session.json을 쓰지 않도록 메모리만 갱신하고 10점마다 저장.
-        val next = cur.copy(pointCount = cur.pointCount + 1)
+        val next = cur.copy(pointCount = cur.pointCount + 1, lastPointAt = p.ts)
         if (next.pointCount % 10 == 0) write(next) else _session.value = next
     }
 
@@ -114,6 +114,7 @@ class TripStore(dir: File) {
             put("summary", s.summary?.let(::summaryJson) ?: JSONObject.NULL)
             put("localSummary", s.localSummary?.let(::summaryJson) ?: JSONObject.NULL)
             put("pointCount", s.pointCount)
+            put("lastPointAt", s.lastPointAt ?: JSONObject.NULL)
         }
 
         fun fromJson(o: JSONObject): TripSession {
@@ -142,6 +143,7 @@ class TripStore(dir: File) {
                 summary = o.optJSONObject("summary")?.let(::parseSummary),
                 localSummary = o.optJSONObject("localSummary")?.let(::parseSummary),
                 pointCount = o.optInt("pointCount", 0),
+                lastPointAt = if (!o.has("lastPointAt") || o.isNull("lastPointAt")) null else o.getLong("lastPointAt"),
             )
         }
 

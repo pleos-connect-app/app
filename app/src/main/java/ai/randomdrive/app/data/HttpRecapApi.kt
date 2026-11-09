@@ -11,20 +11,21 @@ import java.net.URL
 /** 실서버 구현. HttpURLConnection + org.json (추가 라이브러리 없음). */
 class HttpRecapApi(private val baseUrl: String) : RecapApi {
 
+    // excludePlaceIds는 아직 서버 계약에 없어 보내지 않는다(서버 작업 요청서 3-1). 대신 화면 쪽에서 같은 곳이 나오면 다시 요청한다.
     override suspend fun randomDestination(lat: Double, lng: Double, radiusKm: Int, demo: Boolean, excludePlaceIds: Set<String>) =
-        RecapJson.parseRandomDestination(
-            request("POST", "/api/v1/destinations/random", RecapJson.randomDestinationRequest(lat, lng, radiusKm, demo)),
-        )
+        request("POST", "/api/v1/destinations/random", RecapJson.randomDestinationRequest(lat, lng, radiusKm, demo),
+            RecapJson::parseRandomDestination)
 
     override suspend fun finishTrip(tripId: String, request: FinishTripRequest) =
-        RecapJson.parseStatus(request("POST", "/api/v1/trips/${enc(tripId)}/finish", RecapJson.finishRequest(request)))
+        request("POST", "/api/v1/trips/${enc(tripId)}/finish", RecapJson.finishRequest(request), RecapJson::parseStatus)
 
     override suspend fun getRecap(tripId: String): Recap =
-        RecapJson.parseRecap(request("GET", "/api/v1/trips/${enc(tripId)}/recap", null))
+        request("GET", "/api/v1/trips/${enc(tripId)}/recap", null, RecapJson::parseRecap)
 
     private fun enc(s: String) = java.net.URLEncoder.encode(s, "UTF-8")
 
-    private suspend fun request(method: String, path: String, body: String?): String = withContext(Dispatchers.IO) {
+    /** 응답 파싱까지 이 안에서 한다 — 형식이 깨진 응답(HTML 프록시 페이지, 필드 누락)도 ApiException으로 바뀌어 앱이 죽지 않게. */
+    private suspend fun <T> request(method: String, path: String, body: String?, parse: (String) -> T): T = withContext(Dispatchers.IO) {
         val conn = try {
             (URL(baseUrl.trimEnd('/') + path).openConnection() as HttpURLConnection)
         } catch (e: IOException) {
@@ -47,10 +48,12 @@ class HttpRecapApi(private val baseUrl: String) : RecapApi {
                 val (errCode, msg) = RecapJson.parseError(text) ?: ("HTTP_$code" to "서버 오류 ($code)")
                 throw ApiException(errCode, msg, httpStatus = code)
             }
-            text ?: throw ApiException(ApiException.CODE_BAD_RESPONSE, "빈 응답", httpStatus = code)
+            parse(text ?: throw ApiException(ApiException.CODE_BAD_RESPONSE, "빈 응답", httpStatus = code))
         } catch (e: ApiException) {
             throw e
         } catch (e: JSONException) {
+            throw ApiException(ApiException.CODE_BAD_RESPONSE, "응답 형식 오류", cause = e)
+        } catch (e: IllegalArgumentException) {
             throw ApiException(ApiException.CODE_BAD_RESPONSE, "응답 형식 오류", cause = e)
         } catch (e: IOException) {
             throw ApiException(ApiException.CODE_NETWORK, "서버에 연결할 수 없어요", cause = e)

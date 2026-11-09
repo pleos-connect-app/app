@@ -9,6 +9,7 @@ import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Looper
+import android.os.SystemClock
 import android.util.Log
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.channels.awaitClose
@@ -43,6 +44,10 @@ class LocationSource(private val context: Context) {
 
     /**
      * 위치 업데이트 스트림. 구독이 끊기면(awaitClose) 즉시 해제한다 — 화면이 백그라운드로 가면 수집을 멈추는 용도.
+     * - GPS 우선: 최근 [GPS_FRESH_MS] 안에 GPS가 왔으면 network 위치는 버린다(정확도가 다른 두 소스가 섞이면
+     *   경로가 지그재그가 되고 도착 판정 체류 시간이 끊김).
+     * - 정확도가 [MAX_ACCURACY_M]보다 나쁜 위치는 버린다.
+     * - 지금 꺼져 있는 provider에도 등록해 둔다 → 사용자가 나중에 위치를 켜면 그때부터 들어온다.
      * 권한이 없으면 아무것도 내보내지 않고 바로 끝난다.
      */
     @SuppressLint("MissingPermission")
@@ -52,9 +57,19 @@ class LocationSource(private val context: Context) {
             close()
             return@callbackFlow
         }
-        val listener = LocationListener { loc -> trySend(loc.toPoint()) }
-        val providers = PROVIDERS.filter { p -> runCatching { m.isProviderEnabled(p) }.getOrDefault(false) }
-        providers.forEach { p ->
+        var lastGpsAt = 0L
+        val listener = LocationListener { loc ->
+            if (loc.hasAccuracy() && loc.accuracy > MAX_ACCURACY_M) return@LocationListener
+            val now = SystemClock.elapsedRealtime()
+            if (loc.provider == LocationManager.GPS_PROVIDER) {
+                lastGpsAt = now
+            } else if (lastGpsAt != 0L && now - lastGpsAt < GPS_FRESH_MS) {
+                return@LocationListener
+            }
+            trySend(loc.toPoint())
+        }
+        val existing = runCatching { m.allProviders }.getOrDefault(emptyList())
+        PROVIDERS.filter { it in existing }.forEach { p ->
             runCatching { m.requestLocationUpdates(p, intervalMs, 0f, listener, Looper.getMainLooper()) }
                 .onFailure { Log.w(TAG, "requestLocationUpdates($p) failed", it) }
         }
@@ -65,6 +80,8 @@ class LocationSource(private val context: Context) {
 
     companion object {
         private const val TAG = "LocationSource"
+        private const val GPS_FRESH_MS = 10_000L
+        private const val MAX_ACCURACY_M = 100f
         // GPS 우선. 실차에서 GPS가 없을 때를 대비해 network도 함께 듣는다(둘 다 오면 시간순으로 섞임).
         private val PROVIDERS = listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
     }
