@@ -1,7 +1,27 @@
 # RandomDrive Server
 
 RandomDrive 앱(Pleos Connect)용 API 서버. Java 21 + Spring Boot.
-현재는 mock(고정) 응답 + 메모리 저장이라 서버를 재시작하면 트립 데이터가 사라진다.
+랜덤 목적지는 `src/main/resources/candidates.json`의 후보(TourAPI 전국 관광지 약 1만 곳) 중에서 실제로 추첨하고, 주행 종료·리캡 조회는 아직 mock(고정) 응답이다.
+저장은 메모리라 서버를 재시작하면 트립 데이터가 사라진다.
+
+## 랜덤 목적지 후보 갱신 (TourAPI)
+
+`candidates.json`은 커밋돼 있으므로 서버 실행만 할 때는 키가 필요 없다. 후보를 최신으로 다시 받을 때만 아래를 한다.
+
+1. 공공데이터포털에서 "한국관광공사_국문 관광정보 서비스_GW" 활용신청 → 인증키(**Decoding 키**)
+2. `src/main/resources/application-local.yml`에 넣는다(또는 환경변수 `TOUR_API_KEY`).
+   ```yaml
+   tour-api:
+     service-key: "발급받은 Decoding 키"
+   ```
+3. 실행 (약 15초, API 13회 호출):
+   ```bash
+   ./gradlew importCandidates
+   ```
+4. 로그의 `후보 N건, 제외 {...}`를 확인하고 `git diff --stat`으로 변경 규모를 본 뒤 커밋한다.
+
+파일을 직접 고치지 않는다(다시 가져오면 덮어씀). 후보 기준은 `tourapi/CandidateImporter.java`에서 바꾼다.
+placeId 중복, 필수값 누락, 좌표 범위 오류가 있거나 `demo`가 없으면 서버가 시작되지 않는다.
 
 API 계약과 개발 규칙은 [CLAUDE.md](CLAUDE.md) 참고.
 
@@ -45,7 +65,7 @@ HTTPS가 아닌 HTTP이므로 앱 쪽에 디버그 빌드 한정 cleartext 허�
 ## 빠른 확인
 
 ```bash
-# 1) 랜덤 목적지 + tripId 발급
+# 1) 랜덤 목적지 + tripId 발급 (반경 안에서 랜덤, "demo":true면 항상 남한산성)
 curl -X POST http://localhost:8080/api/v1/destinations/random \
   -H 'Content-Type: application/json' \
   -d '{"lat":37.5665,"lng":126.9780,"radiusKm":100}'

@@ -32,3 +32,26 @@ dependencies {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+// 로컬 비밀 설정(application-local.yml)은 배포용 jar에 넣지 않는다.
+// bootRun·importCandidates는 build/resources/main을 직접 읽으므로 그대로 동작한다.
+tasks.named('bootJar') {
+	exclude 'application-local.yml'
+}
+tasks.named('jar') {
+	exclude 'application-local.yml'
+}
+
+// TourAPI에서 랜덤 목적지 후보를 받아 src/main/resources/candidates.json을 다시 만든다.
+// 인증키: src/main/resources/application-local.yml의 tour-api.service-key 또는 환경변수 TOUR_API_KEY.
+tasks.register('importCandidates', JavaExec) {
+	group = 'application'
+	description = 'TourAPI 관광지로 랜덤 목적지 후보 파일(candidates.json)을 다시 만든다.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'com.randomdrive.server.ServerApplication'
+	args '--spring.profiles.active=local,import'
+	workingDir = projectDir
+	javaLauncher = javaToolchains.launcherFor {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
+}

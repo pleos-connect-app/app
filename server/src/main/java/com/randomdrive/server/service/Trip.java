@@ -1,5 +1,6 @@
 package com.randomdrive.server.service;
 
+import com.randomdrive.server.dto.DestinationDto;
 import com.randomdrive.server.dto.TripStatus;
 
 /**
@@ -12,16 +13,23 @@ public class Trip {
     private static final int RUNNING_POLLS = 2;
 
     private final String id;
+    /** 이 트립에 발급한 목적지. 리캡 영상에 장소명을 넣을 때 쓴다. 발급 후 바뀌지 않는다. */
+    private final DestinationDto destination;
     private TripStatus status = TripStatus.PENDING;
     private boolean finished = false;
     private int recapPollCount = 0;
 
-    public Trip(String id) {
+    public Trip(String id, DestinationDto destination) {
         this.id = id;
+        this.destination = destination;
     }
 
     public String getId() {
         return id;
+    }
+
+    public DestinationDto getDestination() {
+        return destination;
     }
 
     /** finish 처리. 이미 finish된 트립이면 아무것도 바꾸지 않고 현재 상태만 반환(멱등). */
