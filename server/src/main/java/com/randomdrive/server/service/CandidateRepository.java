@@ -8,8 +8,11 @@ import tools.jackson.databind.json.JsonMapper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -27,6 +30,7 @@ public class CandidateRepository {
 
     private final List<Candidate> candidates;
     private final Candidate demo;
+    private final Map<String, Candidate> byId;
 
     public CandidateRepository(JsonMapper jsonMapper) {
         CandidateFile file = load(jsonMapper);
@@ -40,6 +44,10 @@ public class CandidateRepository {
         this.demo = file.demo();
         validate(candidates);
         validate(List.of(demo));
+        Map<String, Candidate> map = new HashMap<>();
+        candidates.forEach(c -> map.put(c.placeId(), c));
+        map.put(demo.placeId(), demo);
+        this.byId = Map.copyOf(map);
     }
 
     /** 랜덤 추첨 후보 전체(active=false 포함, demo 장소는 별도). 추첨 시 걸러내는 건 DestinationPicker 몫. */
@@ -50,6 +58,11 @@ public class CandidateRepository {
     /** demo=true일 때 주는 시연용 장소. */
     public Candidate demo() {
         return demo;
+    }
+
+    /** placeId로 후보(demo 포함)를 찾는다. 공유 페이지에서 이미지 공공누리 유형을 알아낼 때 쓴다. */
+    public Optional<Candidate> findById(String placeId) {
+        return Optional.ofNullable(byId.get(placeId));
     }
 
     private static CandidateFile load(JsonMapper jsonMapper) {

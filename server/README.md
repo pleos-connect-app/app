@@ -74,9 +74,24 @@ curl -X POST http://localhost:8080/api/v1/destinations/random \
 curl -X POST http://localhost:8080/api/v1/trips/{tripId}/finish \
   -H 'Content-Type: application/json; charset=utf-8' --data-binary @finish.json
 
-# 3) 리캡 조회 (2번은 RUNNING, 3번째부터 DONE)
+# 3) 리캡 조회 (2번은 RUNNING, 3번째부터 DONE — DONE이면 shareUrl·summary가 채워짐)
 curl http://localhost:8080/api/v1/trips/{tripId}/recap
+
+# 4) 공유 페이지: 3)의 shareUrl을 브라우저로 연다
 ```
+
+## 공유 링크 주소 (QR)
+
+`shareUrl`은 `share.public-base-url`(기본 `http://localhost:8080`) + `/r/{token}`이다.
+QR을 휴대폰으로 찍으면 휴대폰 브라우저가 이 주소를 열기 때문에 **localhost로는 휴대폰에서 열리지 않는다.** 시연·배포 때는 휴대폰에서 접속되는 주소로 바꾼다.
+
+```bash
+# 예: 같은 와이파이의 휴대폰으로 시험 (PC의 내부 IP)
+PUBLIC_BASE_URL=http://192.168.0.10:8080 ./gradlew bootRun
+# PowerShell: $env:PUBLIC_BASE_URL="http://192.168.0.10:8080"; .\gradlew.bat bootRun
+```
+
+공유 링크 유효 기간은 `share.ttl`(기본 `30d`). 서버 저장소가 메모리라 서버를 재시작해도 링크가 사라진다.
 
 > Windows(Git Bash/PowerShell)에서 한글이 들어간 JSON을 `-d`로 바로 넘기면 인코딩이 깨져 400이 날 수 있다.
 > 한글이 포함된 JSON은 UTF-8 파일로 저장해 `--data-binary @파일`로 보내거나 Postman 같은 도구를 쓴다.

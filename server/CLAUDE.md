@@ -5,7 +5,8 @@ Pleos Connect 앱(`../`)이 호출하는 API 서버. 앱 쪽 `CLAUDE.md`의 Pleo
 ## 기술 스택
 
 - Java 21, Spring Boot 4.x (Gradle, `spring-boot-starter-webmvc`, `spring-boot-starter-validation`)
-- 현재 단계: 랜덤 목적지는 실제 추첨(후보는 TourAPI에서 받아 둔 JSON 파일), finish/recap은 mock 응답. 저장은 메모리(`ConcurrentHashMap`), DB 없음.
+- 현재 단계: 랜덤 목적지는 실제 추첨(후보는 TourAPI에서 받아 둔 JSON 파일), 리캡 요약·공유 링크·공유 페이지는 실제 동작, 영상 생성 진행(RUNNING→DONE)만 mock. 저장은 메모리(`ConcurrentHashMap`), DB 없음.
+- 공유 페이지는 Thymeleaf(`src/main/resources/templates/share*.html`).
 
 ## 패키지 구조 (`com.randomdrive.server`)
 
@@ -52,14 +53,27 @@ Pleos Connect 앱(`../`)이 호출하는 API 서버. 앱 쪽 `CLAUDE.md`의 Pleo
 - 없는 `tripId` → 404 `TRIP_NOT_FOUND`.
 
 응답: `{"tripId": "...", "status": "PENDING"}`
-- 같은 `tripId`로 재전송 시 새로 시작하지 않고 현재 상태를 그대로 반환(멱등).
+- 같은 `tripId`로 재전송 시 새로 시작하지 않고 현재 상태를 그대로 반환(멱등). 받은 데이터도 바꾸지 않는다.
+- 단, 상태가 `FAILED`면 새로 받은 데이터로 처음부터 다시 생성하고 `PENDING`을 반환(앱 "다시 시도", handoff 3-5).
 
 ### 3. `GET /api/v1/trips/{tripId}/recap` → 200
 
 응답: `{"tripId", "status", "shareUrl", "videoUrl", "summary": {"distanceKm", "durationMin", "stopCount"}}`
 - finish 전: `PENDING`. `DONE`이 아니면 `shareUrl`/`videoUrl`/`summary`는 `null`.
-- (mock 동작) finish 후 1~2번째 조회 `RUNNING`, 3번째부터 `DONE`.
+- (mock 동작) finish 후 1~2번째 조회 `RUNNING`, 3번째부터 `DONE`. 실제 영상 생성(F-07)이 붙으면 생성 작업 상태를 따른다.
+- `DONE`이 처음 될 때 요약을 계산하고 공유 토큰을 발급한다. 이후 조회는 같은 값.
+  - `shareUrl`: `{share.public-base-url}/r/{token}`. token은 128비트 난수(URL-safe base64 22자).
+  - `videoUrl`: 영상 생성(F-07) 전까지 `null`.
+  - `summary`: finish 데이터로 계산(`RecapSummarizer`, 앱 `localSummary`와 같은 규칙). `distanceKm` 경로 길이(소수 첫째 자리), `durationMin` `endedAt-startedAt`(분, 버림), `stopCount` 예상 밖 정차(`StopDetector`, 앱과 같은 규칙: 60m 안 5분 이상·앞뒤 주행·목적지/경유지 300m 밖).
 - 없는 `tripId` → 404 `TRIP_NOT_FOUND`.
+
+### 4. `GET /r/{token}` → 200 HTML (공유 페이지, F-08)
+
+앱이 호출하지 않는다. QR을 찍은 휴대폰 브라우저가 연다.
+- 목적지 사진(출처 표시)·이름·주소, 날짜, 요약 수치, 영상(없으면 "준비 중"), 공유 버튼.
+- 출발지·경로 좌표 등 원본 위치 로그와 개인·차량 식별 정보는 넣지 않는다.
+- 없는 토큰 404, 기간(`share.ttl`, 기본 30일)이 지난 토큰 410 — 둘 다 HTML 안내 페이지.
+- `Referrer-Policy: no-referrer`, `X-Robots-Tag: noindex` 헤더.
 
 ## 비밀키·설정
 

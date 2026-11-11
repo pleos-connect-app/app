@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title th:text="${page.placeName} + ' 랜덤 드라이브'">랜덤 드라이브</title>
+  <meta property="og:title" th:content="${page.placeName} + ' 랜덤 드라이브'">
+  <meta property="og:description" th:content="${page.distanceText} + ' · ' + ${page.durationText}">
+  <meta property="og:image" th:if="${page.imageUrl}" th:content="${page.imageUrl}">
+  <th:block th:replace="~{share-style :: style}"></th:block>
+</head>
+<body>
+<main class="wrap">
+  <figure class="photo" th:if="${page.imageUrl}" th:classappend="${page.imageNoDerivatives} ? 'photo--original'">
+    <img th:src="${page.imageUrl}" th:alt="${page.placeName}" referrerpolicy="no-referrer">
+    <figcaption>사진: 한국관광공사</figcaption>
+  </figure>
+
+  <header class="head">
+    <p class="eyebrow">랜덤 드라이브 · <span th:text="${page.dateText}">2026년 11월 11일</span></p>
+    <h1 th:text="${page.placeName}">장소</h1>
+    <p class="address" th:text="${page.address}">주소</p>
+  </header>
+
+  <dl class="stats">
+    <div><dt>이동 거리</dt><dd th:text="${page.distanceText}">0.0km</dd></div>
+    <div><dt>주행 시간</dt><dd th:text="${page.durationText}">0분</dd></div>
+    <div><dt>예상 밖 정차</dt><dd th:text="${page.stopCount} + '번'">0번</dd></div>
+  </dl>
+
+  <section class="video" th:if="${page.videoUrl}">
+    <video th:src="${page.videoUrl}" controls playsinline preload="metadata"></video>
+    <a class="button button--ghost" th:href="${page.videoUrl}" download>영상 저장</a>
+  </section>
+  <section class="video video--pending" th:unless="${page.videoUrl}">
+    <p>리캡 영상은 준비 중이에요.</p>
+  </section>
+
+  <button class="button" type="button" id="share" th:attr="data-url=${page.shareUrl},data-title=${page.placeName} + ' 랜덤 드라이브'">
+    공유하기
+  </button>
+  <p class="toast" id="toast" role="status" aria-live="polite"></p>
+
+  <footer class="foot">RandomDrive · 장소 정보 출처: 한국관광공사</footer>
+</main>
+<script>
+  (function () {
+    var btn = document.getElementById('share');
+    var toast = document.getElementById('toast');
+    function show(msg) { toast.textContent = msg; }
+    btn.addEventListener('click', function () {
+      var url = btn.dataset.url, title = btn.dataset.title;
+      if (navigator.share) {
+        navigator.share({ title: title, url: url }).catch(function () {});
+      } else if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(function () { show('링크를 복사했어요'); },
+          function () { show(url); });
+      } else {
+        show(url);
+      }
+    });
+  })();
+</script>
+</body>
+</html>

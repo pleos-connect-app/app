@@ -8,6 +8,9 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.randomdrive.server.service.Geo;
+
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -113,15 +116,41 @@ class TripControllerTest {
                     .andExpect(jsonPath("$.summary").value(nullValue()));
         }
 
-        mockMvc.perform(get("/api/v1/trips/{tripId}/recap", tripId))
+        // 요약은 FINISH_BODY로 실제 계산: 서울시청→안목해변 두 점 직선, 9,000,000ms = 150분, 정차 없음
+        double expectedKm = Math.round(Geo.distanceKm(37.5665, 126.9780, 37.7718, 128.9479) * 10) / 10.0;
+        String done = mockMvc.perform(get("/api/v1/trips/{tripId}/recap", tripId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.tripId").value(tripId))
                 .andExpect(jsonPath("$.status").value("DONE"))
-                .andExpect(jsonPath("$.shareUrl").value("http://localhost:8080/r/demo123"))
-                .andExpect(jsonPath("$.videoUrl").value("http://localhost:8080/videos/sample.mp4"))
-                .andExpect(jsonPath("$.summary.distanceKm").value(214.6))
+                .andExpect(jsonPath("$.shareUrl").value(matchesPattern("http://localhost:8080/r/[A-Za-z0-9_-]{22}")))
+                .andExpect(jsonPath("$.videoUrl").value(nullValue())) // 영상 생성(F-07) 전
+                .andExpect(jsonPath("$.summary.distanceKm").value(expectedKm))
                 .andExpect(jsonPath("$.summary.durationMin").value(150))
-                .andExpect(jsonPath("$.summary.stopCount").value(2));
+                .andExpect(jsonPath("$.summary.stopCount").value(0))
+                .andReturn().getResponse().getContentAsString();
+
+        // DONE 이후 다시 조회해도 같은 공유 링크(토큰은 한 번만 발급)
+        mockMvc.perform(get("/api/v1/trips/{tripId}/recap", tripId))
+                .andExpect(jsonPath("$.status").value("DONE"))
+                .andExpect(jsonPath("$.shareUrl").value((String) JsonPath.read(done, "$.shareUrl")));
+    }
+
+    @Test
+    void 트립마다_공유_토큰이_다르다() throws Exception {
+        String a = finishAndGetShareUrl(createTrip());
+        String b = finishAndGetShareUrl(createTrip());
+        org.assertj.core.api.Assertions.assertThat(a).isNotEqualTo(b);
+    }
+
+    /** 트립을 끝내고 DONE까지 조회해서 shareUrl을 돌려준다. */
+    String finishAndGetShareUrl(String tripId) throws Exception {
+        finish(tripId, "PENDING");
+        String json = null;
+        for (int i = 0; i < 3; i++) {
+            json = mockMvc.perform(get("/api/v1/trips/{tripId}/recap", tripId))
+                    .andReturn().getResponse().getContentAsString();
+        }
+        return JsonPath.read(json, "$.shareUrl");
     }
 
     @Test
