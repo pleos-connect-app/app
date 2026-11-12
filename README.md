@@ -36,16 +36,20 @@ JDK 17 이상과 Android SDK가 필요합니다. 에뮬레이터를 켠 상태�
 
 릴리스 빌드는 `-Prandomdrive.releaseServerBaseUrl=https://...`가 없으면 빌드가 멈춥니다(평문 HTTP 금지).
 
-### 추첨 화면 위성 지도(선택)
+### 위성 지도·출발지 이름(선택)
 
-목적지를 뽑는 동안 위성 지도 위에서 핀이 돌아다니다 목적지에 착지하는 연출이 나옵니다.
-지도는 [공간정보 오픈플랫폼(VWorld)](https://www.vworld.kr) 위성 타일을 쓰며, 인증키를 `local.properties`(git 미포함)에 넣습니다.
+[공간정보 오픈플랫폼(VWorld)](https://www.vworld.kr) 인증키 하나로 두 기능을 씁니다. 키 발급 시 활용 API에서
+**WMTS/TMS API**(위성 지도)와 **지오코더 API**(좌표→시·구·동)를 선택하고, 키를 `local.properties`(git 미포함)에 넣습니다.
+
+- 홈: 고른 반경을 위성 지도 위 원으로 미리 보여 주고, 출발 위치를 "서울특별시 용산구 동자동"처럼 표시
+- 추첨: 위성 지도 위에서 핀이 돌아다니다 목적지에 착지하고, 목적지 주변으로 확대해 잠깐 보여 줌
 
 ```properties
 randomdrive.vworldKey=발급받은_인증키
 ```
 
-키가 없거나 지도를 받지 못하면 어두운 배경에 반경 원만 그리는 화면으로 대신합니다(기능은 동일).
+키가 없거나 지도를 받지 못하면 어두운 배경에 반경 원만 그리고, 출발 위치는 "현재 위치"로 표시합니다(기능은 동일).
+키는 APK 안에 들어가므로 완전히 숨길 수 없습니다. 무료 키이고 막혀도 위 대체 화면으로 동작합니다.
 
 ### 서버
 
@@ -84,7 +88,7 @@ DO(주행 중 사용)를 선언하지 않았습니다. 모든 조작은 정차(P
 | `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION` | 출발 위치, 이동 경로 기록, 도착 판정 |
 | `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_LOCATION` | 다른 앱(내비)을 보는 동안 위치 기록 유지 |
 | `POST_NOTIFICATIONS` | 기록 중 알림 |
-| `INTERNET` | 목적지 추첨·리캡 서버 통신, 장소 사진, 추첨 화면 위성 지도 |
+| `INTERNET` | 목적지 추첨·리캡 서버 통신, 장소 사진, 위성 지도·출발지 이름(VWorld) |
 | `pleos.car.permission.NAVI_ROUTE`, `NAVI_ROUTE_SEARCH`, `NAVI_CUSTOM_MAP` | NaviHelper(경로 안내 요청, 예상 시간 조회, 경유지 정보) |
 
 ## 외부 라이브러리와 라이선스
@@ -96,7 +100,7 @@ DO(주행 중 사용)를 선언하지 않았습니다. 모든 조작은 정차(P
 | ZXing core 3.5.3 | QR 코드 생성 | Apache License 2.0 |
 
 장소 사진과 정보는 한국관광공사 TourAPI 자료이며 화면에 출처를 표시합니다.
-추첨 화면의 위성 지도는 국토교통부 공간정보 오픈플랫폼(VWorld) 타일이며 화면에 출처를 표시합니다.
+위성 지도와 출발지 이름은 국토교통부 공간정보 오픈플랫폼(VWorld) 자료이며 지도 화면에 출처를 표시합니다.
 
 ## 문서
 

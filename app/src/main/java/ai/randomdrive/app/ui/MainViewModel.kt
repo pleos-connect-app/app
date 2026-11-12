@@ -2,7 +2,9 @@ package ai.randomdrive.app.ui
 
 import ai.randomdrive.app.AppContainer
 import ai.randomdrive.app.data.ApiException
+import ai.randomdrive.app.data.AreaName
 import ai.randomdrive.app.data.FinishTripRequest
+import ai.randomdrive.app.data.VWorldGeocoder
 import ai.randomdrive.app.domain.CandidatePicker
 import ai.randomdrive.app.domain.Destination
 import ai.randomdrive.app.domain.Geo
@@ -45,7 +47,8 @@ sealed interface LocationState {
     data object Loading : LocationState
     data object NoPermission : LocationState
     data object Disabled : LocationState
-    data class Ready(val point: TrackPoint, val label: String) : LocationState
+    /** [label]은 화면 곳곳에 쓰는 짧은 이름("용산구 동자동"), [address]는 홈 카드용 전체 이름("서울특별시 용산구 동자동"). */
+    data class Ready(val point: TrackPoint, val label: String, val address: String? = null) : LocationState
 }
 
 data class NaviTripInfo(val distanceM: Int, val etaS: Int)
@@ -98,7 +101,8 @@ class MainViewModel(app: Application, private val c: AppContainer) : AndroidView
 
     private var locationJob: Job? = null
     private var finishJob: Job? = null
-    private var labelCache: Pair<LatLng, String>? = null
+    private var labelCache: Pair<LatLng, AreaName?>? = null
+    private var labelJob: Job? = null
 
     val state: StateFlow<UiState> = combine(
         combine(location, c.navi.connection, preTrip, ::Triple),
@@ -146,10 +150,10 @@ class MainViewModel(app: Application, private val c: AppContainer) : AndroidView
             location.value = LocationState.Disabled
             return
         }
-        c.location.lastKnown()?.let { p -> viewModelScope.launch { location.value = LocationState.Ready(p, label(p)) } }
+        c.location.lastKnown()?.let(::onHomeLocation)
         if (locationJob?.isActive == true) return
         locationJob = viewModelScope.launch {
-            c.location.updates(intervalMs = 5_000L).collect { p -> location.value = LocationState.Ready(p, label(p)) }
+            c.location.updates(intervalMs = 5_000L).collect(::onHomeLocation)
         }
     }
 
@@ -158,20 +162,42 @@ class MainViewModel(app: Application, private val c: AppContainer) : AndroidView
         locationJob = null
     }
 
-    /** 위치 이름. 기기에 Geocoder가 있으면 동 이름, 없으면(에뮬레이터·GMS 없음) "현재 위치". 1km 이내 재사용. */
-    private suspend fun label(p: TrackPoint): String {
-        labelCache?.let { (at, name) -> if (Geo.distanceMeters(at, p.latLng) < 1_000) return name }
-        val name = withContext(Dispatchers.IO) {
+    /** 위치는 바로 보여 주고, 시·구·동 이름은 받아 오는 대로 채운다(네트워크 때문에 홈 화면이 늦게 뜨지 않게). */
+    private fun onHomeLocation(p: TrackPoint) {
+        val cached = labelCache?.takeIf { (at, _) -> Geo.distanceMeters(at, p.latLng) < 1_000 }
+        if (cached != null) {
+            val area = cached.second
+            location.value = LocationState.Ready(p, area?.short ?: DEFAULT_LABEL, area?.full)
+            return
+        }
+        val prev = location.value as? LocationState.Ready
+        location.value = LocationState.Ready(p, prev?.label ?: DEFAULT_LABEL, prev?.address)
+        if (labelJob?.isActive == true) return
+        labelJob = viewModelScope.launch {
+            val area = areaName(p)
+            labelCache = p.latLng to area // 실패(null)도 1km 안에서는 다시 묻지 않음
+            location.update { cur ->
+                if (cur is LocationState.Ready) cur.copy(label = area?.short ?: DEFAULT_LABEL, address = area?.full) else cur
+            }
+        }
+    }
+
+    /** 시·구·동 이름. VWorld 지오코더(키 있을 때) → 기기 Geocoder(실차 등) 순. 둘 다 없으면 null → "현재 위치". */
+    private suspend fun areaName(p: TrackPoint): AreaName? {
+        VWorldGeocoder.reverse(p.lat, p.lng)?.let { return it }
+        return withContext(Dispatchers.IO) {
             runCatching {
                 if (!Geocoder.isPresent()) return@runCatching null
                 @Suppress("DEPRECATION")
-                Geocoder(getApplication(), Locale.KOREA).getFromLocation(p.lat, p.lng, 1)?.firstOrNull()
-                    ?.let { a -> listOfNotNull(a.locality ?: a.subAdminArea, a.subLocality ?: a.thoroughfare).joinToString(" ") }
-                    ?.takeIf { it.isNotBlank() }
+                Geocoder(getApplication(), Locale.KOREA).getFromLocation(p.lat, p.lng, 1)?.firstOrNull()?.let { a ->
+                    val gu = a.locality ?: a.subAdminArea
+                    val dong = a.subLocality ?: a.thoroughfare
+                    val short = listOfNotNull(gu, dong).joinToString(" ")
+                    val full = listOfNotNull(a.adminArea, gu, dong).joinToString(" ")
+                    if (short.isBlank()) null else AreaName(full, short)
+                }
             }.getOrNull()
-        } ?: "현재 위치"
-        labelCache = p.latLng to name
-        return name
+        }
     }
 
     // ---------- 추첨 (F-01) ----------
@@ -444,8 +470,9 @@ class MainViewModel(app: Application, private val c: AppContainer) : AndroidView
 
     companion object {
         private const val TAG = "MainViewModel"
-        /** 결과를 받은 뒤 화면 연출이 이보다 길어지면 강제로 결과 화면으로. 연출(최대 약 3초)보다 넉넉하게. */
-        private const val DRAW_FALLBACK_MS = 8_000L
+        private const val DEFAULT_LABEL = "현재 위치"
+        /** 결과를 받은 뒤 화면 연출이 이보다 길어지면 강제로 결과 화면으로. 연출(결과 수신 후 최대 약 6초)보다 넉넉하게. */
+        private const val DRAW_FALLBACK_MS = 10_000L
         private const val MIN_ROUTE_KM = 0.5
         private const val POLL_INTERVAL_MS = 2_000L
         private const val MAX_RECAP_POLLS = 90 // 2초 × 90 = 화면이 보이는 동안 약 3분

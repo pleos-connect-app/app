@@ -48,16 +48,24 @@ object Tokens {
     val iviTwoPaneMinWidth = 1000.dp
     val iviQrSize = 320.dp
     val iviPhotoHeight = 220.dp
+    /** 홈 화면 반경 미리보기 지도 높이. */
+    val iviMapHeight = 440.dp
 
-    // TODO(pleos-token) motion — 가이드의 duration/easing 값은 이미지로만 있어 임시 값. 추첨 연출 총 길이 약 2.5초.
+    // TODO(pleos-token) motion — 가이드의 duration/easing 값은 이미지로만 있어 임시 값.
     /** 서버 응답이 빨라도 핀이 이 시간만큼은 돌아다닌다. */
     const val iviMotionDrawMinSpinMs = 1_000L
     /** 탐색 중 핀이 옮겨 가는 간격. */
     const val iviMotionDrawHopMs = 110L
     /** 착지 직전 점점 느려지는 간격들. */
     val iviMotionDrawLandingHopsMs = listOf(150L, 210L, 290L, 380L)
-    /** 착지 후 목적지 이름을 보여 주는 시간. */
-    const val iviMotionDrawHoldMs = 900L
+    /** 착지 후 목적지 쪽으로 확대하기 전 잠깐 멈춤. */
+    const val iviMotionDrawLandPauseMs = 500L
+    /** 목적지 주변으로 확대해 들어가는 시간. */
+    const val iviMotionDrawFlyMs = 1_400
+    /** 확대한 뒤 목적지를 보여 주는 시간. 그다음 결과 화면. */
+    const val iviMotionDrawHoldMs = 1_800L
+    /** 반경을 바꿀 때 홈 지도 원이 커지고 줄어드는 시간. */
+    const val iviMotionRadiusChangeMs = 450
 
     const val PRESSED_SCALE = 0.95f // 가이드: press 시 95% 스케일
 }

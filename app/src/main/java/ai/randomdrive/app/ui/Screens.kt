@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
@@ -68,6 +69,9 @@ fun HomeScreen(
         primary = {
             Text("랜덤드라이브", style = MaterialTheme.typography.displaySmall, color = MaterialTheme.colorScheme.onSurface)
             Body("반경만 고르면 오늘의 목적지를 뽑아 드려요", muted = true)
+            here?.let {
+                RadiusPreviewMap(it, radius, MainViewModel.RADIUS_OPTIONS, Modifier.fillMaxWidth().height(Tokens.iviMapHeight))
+            }
             Card {
                 Body("출발 위치", muted = true)
                 when (val loc = state.location) {
@@ -84,8 +88,8 @@ fun HomeScreen(
                         SecondaryButton("위치 설정 열기", onOpenLocationSettings)
                     }
                     is LocationState.Ready -> {
-                        Title(loc.label)
-                        Body(String.format(Locale.US, "%.4f, %.4f", loc.point.lat, loc.point.lng), muted = true)
+                        // 좌표 대신 시·구·동. 이름을 아직 모르면(받는 중·지원 안 됨) "현재 위치"
+                        Title(loc.address ?: loc.label)
                     }
                 }
             }
