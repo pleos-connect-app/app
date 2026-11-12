@@ -141,6 +141,7 @@ fun ResultScreen(r: PreTrip.Result, onStart: () -> Unit, onReroll: () -> Unit, o
             Body("오늘의 랜덤 목적지", muted = true)
             Text(r.destination.name, style = MaterialTheme.typography.displaySmall, color = MaterialTheme.colorScheme.onSurface)
             Body(r.destination.address, muted = true)
+            PlacePhoto(r.destination.imageUrl)
             Card {
                 Body("${r.originLabel}에서 직선 ${formatKm(r.destination.distanceKm)}")
                 when {
@@ -276,6 +277,7 @@ fun RecapScreen(s: TripSession, onNewTrip: () -> Unit) {
         primary = {
             Body("리캡 영상 완성", muted = true)
             Text("${s.originLabel} → ${s.destination.name}", style = MaterialTheme.typography.displaySmall, color = MaterialTheme.colorScheme.onSurface)
+            PlacePhoto(s.destination.imageUrl)
             if (summary != null) {
                 Card {
                     Body("이동 거리 ${formatKm(summary.distanceKm)}")

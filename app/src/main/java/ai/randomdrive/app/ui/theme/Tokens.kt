@@ -45,6 +45,7 @@ object Tokens {
     /** 이 폭 이상이면 2단(가로) 레이아웃. */
     val iviTwoPaneMinWidth = 1000.dp
     val iviQrSize = 320.dp
+    val iviPhotoHeight = 220.dp
 
     const val PRESSED_SCALE = 0.95f // 가이드: press 시 95% 스케일
 }
