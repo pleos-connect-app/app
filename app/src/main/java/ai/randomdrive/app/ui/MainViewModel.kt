@@ -53,7 +53,10 @@ data class NaviTripInfo(val distanceM: Int, val etaS: Int)
 /** 여행 시작 전(추첨~내비 전달) 단계. 저장하지 않는 일시 상태. */
 sealed interface PreTrip {
     data object Home : PreTrip
-    data class Drawing(val radiusKm: Int) : PreTrip
+    /**
+     * 추첨 연출 중. [pending]은 서버가 이미 준 결과로, 화면이 핀 착지 연출을 마치면([MainViewModel.finishDrawing]) Result로 넘어간다.
+     */
+    data class Drawing(val radiusKm: Int, val origin: LatLng, val pending: Result? = null) : PreTrip
     data class Result(
         val tripId: String,
         val destination: Destination,
@@ -181,9 +184,8 @@ class MainViewModel(app: Application, private val c: AppContainer) : AndroidView
         message.value = null
         val seen = (preTrip.value as? PreTrip.Result)?.let { if (reroll) it.seenPlaceIds + it.destination.placeId else emptySet() }
             ?: emptySet()
-        preTrip.value = PreTrip.Drawing(radiusKm)
+        preTrip.value = PreTrip.Drawing(radiusKm, loc.point.latLng)
         viewModelScope.launch {
-            val started = System.currentTimeMillis()
             val result = runCatching {
                 // 실서버 계약에는 제외 목록이 없어 같은 곳이 다시 나올 수 있다 → 최대 3번까지 다시 요청.
                 var r = c.api.randomDestination(loc.point.lat, loc.point.lng, radiusKm, demo = c.demoMode, excludePlaceIds = seen)
@@ -194,11 +196,13 @@ class MainViewModel(app: Application, private val c: AppContainer) : AndroidView
                 }
                 r
             }
-            // 추첨 연출은 최소 1.2초 (너무 짧으면 "랜덤" 느낌이 안 남, 길면 지루함)
-            delay((MIN_DRAW_MS - (System.currentTimeMillis() - started)).coerceAtLeast(0))
+            // 연출 길이는 화면(DrawingScreen)이 정한다. 결과만 넘겨 두고 착지가 끝나면 finishDrawing()이 불린다.
             result.onSuccess { r ->
-                preTrip.value = PreTrip.Result(r.tripId, r.destination, loc.point.latLng, loc.label, radiusKm, seenPlaceIds = seen)
-                queryNaviTrip(r.destination)
+                val res = PreTrip.Result(r.tripId, r.destination, loc.point.latLng, loc.label, radiusKm, seenPlaceIds = seen)
+                preTrip.update { p -> if (p is PreTrip.Drawing) p.copy(pending = res) else p }
+                // 화면이 콜백을 못 부르는 경우(재구성·백그라운드)에도 추첨 화면에 갇히지 않게
+                delay(DRAW_FALLBACK_MS)
+                finishDrawing(r.tripId)
             }.onFailure { e ->
                 Log.w(TAG, "randomDestination failed", e)
                 preTrip.value = PreTrip.Home
@@ -209,6 +213,15 @@ class MainViewModel(app: Application, private val c: AppContainer) : AndroidView
                 }
             }
         }
+    }
+
+    /** 추첨 화면의 착지 연출이 끝났을 때. [tripId]를 주면 그 추첨일 때만 넘어간다(늦게 온 대체 타이머 무시). */
+    fun finishDrawing(tripId: String? = null) {
+        val d = preTrip.value as? PreTrip.Drawing ?: return
+        val res = d.pending ?: return
+        if (tripId != null && res.tripId != tripId) return
+        preTrip.value = res
+        queryNaviTrip(res.destination)
     }
 
     private fun queryNaviTrip(d: Destination) {
@@ -431,7 +444,8 @@ class MainViewModel(app: Application, private val c: AppContainer) : AndroidView
 
     companion object {
         private const val TAG = "MainViewModel"
-        private const val MIN_DRAW_MS = 1_200L
+        /** 결과를 받은 뒤 화면 연출이 이보다 길어지면 강제로 결과 화면으로. 연출(최대 약 3초)보다 넉넉하게. */
+        private const val DRAW_FALLBACK_MS = 8_000L
         private const val MIN_ROUTE_KM = 0.5
         private const val POLL_INTERVAL_MS = 2_000L
         private const val MAX_RECAP_POLLS = 90 // 2초 × 90 = 화면이 보이는 동안 약 3분

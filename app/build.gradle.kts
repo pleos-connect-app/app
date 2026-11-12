@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -12,6 +14,11 @@ val useFakeServer = prop("randomdrive.useFakeServer", "true").toBoolean()
 val serverBaseUrl = prop("randomdrive.serverBaseUrl", "http://10.0.2.2:8080")
 val demoMode = prop("randomdrive.demoMode", "false").toBoolean()
 val releaseServerBaseUrl = prop("randomdrive.releaseServerBaseUrl", "")
+// 추첨 화면 위성 지도(VWorld) 인증키. local.properties의 randomdrive.vworldKey(git 미포함) 또는 -P로 전달. 없으면 지도 없는 배경.
+val localProps = Properties().apply {
+    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+}
+val vworldKey = (project.findProperty("randomdrive.vworldKey") as String?) ?: localProps.getProperty("randomdrive.vworldKey", "")
 if (gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) } &&
     !releaseServerBaseUrl.startsWith("https://")
 ) {
@@ -32,6 +39,7 @@ android {
         versionName = "0.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "VWORLD_API_KEY", "\"$vworldKey\"")
     }
 
     buildTypes {

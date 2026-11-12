@@ -18,4 +18,11 @@ class GeoTest {
         val expected = Geo.distanceMeters(seoulStation, mid) + Geo.distanceMeters(mid, namhansanseong)
         assertEquals(expected, Geo.pathLengthMeters(listOf(seoulStation, mid, namhansanseong)), 1e-6)
     }
+
+    @Test fun `destination은 요청한 거리만큼 떨어진 점`() {
+        listOf(0.0, 90.0, 200.0, 315.0).forEach { b ->
+            val p = Geo.destination(seoulStation, 80_000.0, b)
+            assertEquals(80_000.0, Geo.distanceMeters(seoulStation, p), 1.0)
+        }
+    }
 }

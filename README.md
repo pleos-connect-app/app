@@ -36,6 +36,17 @@ JDK 17 이상과 Android SDK가 필요합니다. 에뮬레이터를 켠 상태�
 
 릴리스 빌드는 `-Prandomdrive.releaseServerBaseUrl=https://...`가 없으면 빌드가 멈춥니다(평문 HTTP 금지).
 
+### 추첨 화면 위성 지도(선택)
+
+목적지를 뽑는 동안 위성 지도 위에서 핀이 돌아다니다 목적지에 착지하는 연출이 나옵니다.
+지도는 [공간정보 오픈플랫폼(VWorld)](https://www.vworld.kr) 위성 타일을 쓰며, 인증키를 `local.properties`(git 미포함)에 넣습니다.
+
+```properties
+randomdrive.vworldKey=발급받은_인증키
+```
+
+키가 없거나 지도를 받지 못하면 어두운 배경에 반경 원만 그리는 화면으로 대신합니다(기능은 동일).
+
 ### 서버
 
 `server/`의 Spring Boot 서버(JDK 21)입니다. 실행과 앱 연동 방법은
@@ -73,7 +84,7 @@ DO(주행 중 사용)를 선언하지 않았습니다. 모든 조작은 정차(P
 | `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION` | 출발 위치, 이동 경로 기록, 도착 판정 |
 | `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_LOCATION` | 다른 앱(내비)을 보는 동안 위치 기록 유지 |
 | `POST_NOTIFICATIONS` | 기록 중 알림 |
-| `INTERNET` | 목적지 추첨·리캡 서버 통신, 장소 사진 |
+| `INTERNET` | 목적지 추첨·리캡 서버 통신, 장소 사진, 추첨 화면 위성 지도 |
 | `pleos.car.permission.NAVI_ROUTE`, `NAVI_ROUTE_SEARCH`, `NAVI_CUSTOM_MAP` | NaviHelper(경로 안내 요청, 예상 시간 조회, 경유지 정보) |
 
 ## 외부 라이브러리와 라이선스
@@ -85,6 +96,7 @@ DO(주행 중 사용)를 선언하지 않았습니다. 모든 조작은 정차(P
 | ZXing core 3.5.3 | QR 코드 생성 | Apache License 2.0 |
 
 장소 사진과 정보는 한국관광공사 TourAPI 자료이며 화면에 출처를 표시합니다.
+추첨 화면의 위성 지도는 국토교통부 공간정보 오픈플랫폼(VWorld) 타일이며 화면에 출처를 표시합니다.
 
 ## 문서
 

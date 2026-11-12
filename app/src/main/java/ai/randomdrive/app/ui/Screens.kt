@@ -1,16 +1,13 @@
 package ai.randomdrive.app.ui
 
 import ai.randomdrive.app.domain.ArrivalSource
+import ai.randomdrive.app.domain.MapCamera
 import ai.randomdrive.app.domain.NaviTripCheck
+import ai.randomdrive.app.domain.WebMercator
 import ai.randomdrive.app.navi.NaviConnection
 import ai.randomdrive.app.trip.TripPhase
 import ai.randomdrive.app.trip.TripSession
 import ai.randomdrive.app.ui.theme.Tokens
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,11 +30,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import java.util.Locale
+import kotlin.math.roundToInt
 
 // 이 앱은 DO(주행 중 사용)를 선언하지 않는다. 아래 모든 화면은 정차(P) 중에만 보이며,
 // 주행 중에는 시스템이 "주행 중에는 사용할 수 없습니다" 화면으로 대체한다(에뮬레이터 실측).
@@ -55,6 +53,17 @@ fun HomeScreen(
 ) {
     var radius by remember { mutableStateOf(MainViewModel.RADIUS_OPTIONS.first()) }
     val ready = state.location is LocationState.Ready
+    // 추첨 화면 위성 지도를 미리 받아 둔다(반경·대략적인 위치가 바뀔 때만). 추첨 화면과 같은 창 크기로 계산.
+    val here = (state.location as? LocationState.Ready)?.point?.latLng
+    val hereKey = here?.let { (it.lat * 100).roundToInt() to (it.lng * 100).roundToInt() }
+    val conf = LocalConfiguration.current
+    val density = LocalDensity.current.density
+    LaunchedEffect(radius, hereKey, conf.screenWidthDp, conf.screenHeightDp) {
+        val p = here ?: return@LaunchedEffect
+        val w = (conf.screenWidthDp * density).toInt()
+        val h = (conf.screenHeightDp * density).toInt()
+        SatelliteTiles.prefetch(MapCamera(p, WebMercator.fitZoom(p.lat, radius * 1000.0, w, h)), w, h)
+    }
     ResponsivePanes(
         primary = {
             Text("랜덤드라이브", style = MaterialTheme.typography.displaySmall, color = MaterialTheme.colorScheme.onSurface)
@@ -115,20 +124,6 @@ private fun NaviStatus(connection: NaviConnection, onRetry: () -> Unit) {
         NaviConnection.FAILED -> Card {
             Body("내비게이션에 연결하지 못했어요", error = true)
             SecondaryButton("다시 연결", onRetry)
-        }
-    }
-}
-
-// ---------------- 추첨 중 ----------------
-
-@Composable
-fun DrawingScreen(radiusKm: Int) {
-    val t = rememberInfiniteTransition(label = "draw")
-    val a by t.animateFloat(0.35f, 1f, infiniteRepeatable(tween(500), RepeatMode.Reverse), label = "alpha")
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Tokens.iviSpacingMedium)) {
-            Text("🎲", style = MaterialTheme.typography.displaySmall, modifier = Modifier.alpha(a))
-            Title("반경 ${radiusKm}km 안에서 뽑는 중…")
         }
     }
 }

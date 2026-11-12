@@ -66,7 +66,7 @@ class MainActivity : ComponentActivity() {
                                 }
                                 is PreTrip.Drawing -> {
                                     BackHandler { }
-                                    DrawingScreen(p.radiusKm)
+                                    DrawingScreen(p, onLanded = { vm.finishDrawing() })
                                 }
                                 is PreTrip.Result -> {
                                     BackHandler(enabled = !p.sending) { vm.backToHome() }
