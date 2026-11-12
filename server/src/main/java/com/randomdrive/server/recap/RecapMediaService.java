@@ -10,6 +10,7 @@ import com.randomdrive.server.service.ShareProperties;
 import com.randomdrive.server.service.StopDetector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import javax.imageio.IIOImage;
@@ -29,6 +30,7 @@ import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -55,10 +57,14 @@ public class RecapMediaService {
     private final FfmpegEncoder encoder;
     private final boolean videoAvailable;
     private final Path dir;
+    private final ShareProperties share;
+    private final Clock clock;
 
     public RecapMediaService(RecapProperties props, ShareProperties share, VWorldClient vworld, PhotoLoader photos,
                              Clock clock) throws IOException {
         this.props = props;
+        this.share = share;
+        this.clock = clock;
         this.vworld = vworld;
         this.photos = photos;
         this.painter = new RecapPainter(props.fontFile());
@@ -72,6 +78,14 @@ public class RecapMediaService {
         }
         log.info("Recap media: dir={}, video={}, thumbnail={}, map tiles={}",
                 dir, videoAvailable, props.thumbnail(), vworld.enabled());
+    }
+
+    /**
+     * 공유 기간이 지난 영상·썸네일 파일을 지운다(공유 페이지는 DB 기록으로 410 안내를 계속 보여 준다).
+     * 서버가 켜질 때 한 번, 이후 6시간마다.
+     */
+    @Scheduled(initialDelay = 0, fixedDelay = 6, timeUnit = TimeUnit.HOURS)
+    public void deleteExpiredMedia() {
         deleteOlderThan(clock.instant().minus(share.ttl()).toEpochMilli());
     }
 
@@ -227,10 +241,7 @@ public class RecapMediaService {
         Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
     }
 
-    /**
-     * 공유 기간이 지난 파일을 지운다. 저장소가 아직 메모리라 서버를 재시작하면 남은 파일은 어느 트립과도 이어지지 않지만,
-     * 나중에 DB로 바꿀 것을 생각해 기간 기준으로만 지운다.
-     */
+    /** 수정 시각이 cutoff보다 오래된 파일을 지운다(파일은 리캡 완료 때 한 번 쓰이므로 완료 시각과 같다). */
     private void deleteOlderThan(long cutoffMillis) {
         try (Stream<Path> files = Files.list(dir)) {
             files.filter(Files::isRegularFile).forEach(f -> {

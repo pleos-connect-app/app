@@ -4,7 +4,7 @@
 #   예) server/deploy/deploy.sh ubuntu@3.35.10.20 3-35-10-20.sslip.io ~/.ssh/lightsail-seoul.pem
 # 처음이면 --setup을 붙여 서버 준비(setup.sh)까지 한다:
 #   server/deploy/deploy.sh ubuntu@3.35.10.20 3-35-10-20.sslip.io ~/.ssh/key.pem --setup
-# 주의: 저장소가 아직 메모리라 배포(재시작)하면 기존 트립·공유 링크가 사라진다.
+# 트립은 H2 파일 DB에 남으므로 배포(재시작)해도 공유 링크가 유지된다. 생성 중이던 리캡은 재시작 후 다시 만든다.
 set -euo pipefail
 
 TARGET="${1:?usage: deploy.sh <user@host> <domain> [key] [--setup]}"

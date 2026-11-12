@@ -24,7 +24,7 @@ fi
 
 echo "== user, dirs"
 id randomdrive >/dev/null 2>&1 || useradd --system --home /var/lib/randomdrive --shell /usr/sbin/nologin randomdrive
-install -d -o randomdrive -g randomdrive -m 750 /var/lib/randomdrive /var/lib/randomdrive/recaps
+install -d -o randomdrive -g randomdrive -m 750 /var/lib/randomdrive /var/lib/randomdrive/recaps /var/lib/randomdrive/db
 install -d -o root -g root -m 755 /opt/randomdrive
 
 echo "== env file"

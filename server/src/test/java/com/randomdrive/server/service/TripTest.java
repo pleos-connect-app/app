@@ -56,7 +56,8 @@ class TripTest {
 
         trip.complete(1, RECAP);
         assertThat(trip.finish(data(3)).status()).isEqualTo(DONE);
-        assertThat(trip.getFinishData()).isSameAs(first);
+        assertThat(trip.getEndedAt()).as("처음 받은 데이터 그대로").isEqualTo(first.endedAt());
+        assertThat(trip.getFinishData()).as("DONE이면 무거운 주행 데이터는 메모리에서 내려놓음").isNull();
     }
 
     @Test

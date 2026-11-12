@@ -3,7 +3,7 @@
 RandomDrive 앱(Pleos Connect)용 API 서버. Java 21 + Spring Boot.
 랜덤 목적지는 `src/main/resources/candidates.json`의 후보(TourAPI 전국 관광지 약 1만 곳) 중에서 실제로 추첨하고,
 주행 종료(finish) 후에는 요약·리캡 영상(MP4)·썸네일·공유 링크를 백그라운드에서 만든다.
-저장은 메모리라 서버를 재시작하면 트립 데이터가 사라진다(영상 파일은 `data/recaps/`에 남지만 링크는 끊긴다).
+트립은 H2 파일 DB(`data/randomdrive.mv.db`, 환경변수 `DB_PATH`)에 저장되어 재시작해도 남는다. 생성 중에 꺼졌던 리캡은 다시 켜질 때 이어서 만든다.
 
 ## 랜덤 목적지 후보 갱신 (TourAPI)
 
@@ -104,7 +104,7 @@ curl http://localhost:8080/api/v1/trips/{tripId}/recap
 테스트 서버: `https://13-125-180-227.sslip.io` (Ubuntu 24.04, 서울). 구성: Caddy(443, 인증서 자동) → 서버(127.0.0.1:8080, systemd `randomdrive`). 파일은 `deploy/`.
 
 ```bash
-# 코드 배포(빌드 → 업로드 → 재시작 → 상태 확인). 메모리 저장소라 기존 트립·링크가 사라진다.
+# 코드 배포(빌드 → 업로드 → 재시작 → 상태 확인). 트립·링크는 DB에 남는다.
 server/deploy/deploy.sh ubuntu@13.125.180.227 13-125-180-227.sslip.io ~/.ssh/randomdrive-key.pem
 
 # 새 서버 처음 한 번: --setup (Java 21·ffmpeg·한글 글꼴·Caddy·스왑·서비스 등록)
@@ -126,7 +126,7 @@ PUBLIC_BASE_URL=http://192.168.0.10:8080 ./gradlew bootRun
 # PowerShell: $env:PUBLIC_BASE_URL="http://192.168.0.10:8080"; .\gradlew.bat bootRun
 ```
 
-공유 링크 유효 기간은 `share.ttl`(기본 `30d`). 서버 저장소가 메모리라 서버를 재시작해도 링크가 사라진다.
+공유 링크 유효 기간은 `share.ttl`(기본 `30d`). 기간이 지난 영상·썸네일 파일은 6시간마다 지우고, 공유 페이지는 410 안내를 보여 준다.
 
 > Windows(Git Bash/PowerShell)에서 한글이 들어간 JSON을 `-d`로 바로 넘기면 인코딩이 깨져 400이 날 수 있다.
 > 한글이 포함된 JSON은 UTF-8 파일로 저장해 `--data-binary @파일`로 보내거나 Postman 같은 도구를 쓴다.
