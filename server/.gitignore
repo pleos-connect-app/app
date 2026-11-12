@@ -38,3 +38,6 @@ out/
 
 ### Local secrets (never commit) ###
 application-local.yml
+
+### Recap media (generated videos/thumbnails) ###
+/data/

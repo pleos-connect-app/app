@@ -50,11 +50,9 @@ class ShareControllerTest {
         mockMvc.perform(post("/api/v1/trips/{tripId}/finish", tripId)
                         .contentType(MediaType.APPLICATION_JSON).content(FINISH_BODY))
                 .andExpect(status().isAccepted());
-        String recap = null;
-        for (int i = 0; i < 3; i++) {
-            recap = mockMvc.perform(get("/api/v1/trips/{tripId}/recap", tripId))
-                    .andReturn().getResponse().getContentAsString();
-        }
+        // 테스트 설정(recap.workers=0)에서는 finish 안에서 생성이 끝나 바로 DONE
+        String recap = mockMvc.perform(get("/api/v1/trips/{tripId}/recap", tripId))
+                .andReturn().getResponse().getContentAsString();
         return JsonPath.read(recap, "$.shareUrl");
     }
 
@@ -89,6 +87,35 @@ class ShareControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("<img src=\"https://")))
                 .andExpect(content().string(containsString("사진: 한국관광공사")));
+    }
+
+    @Test
+    void 썸네일은_공유_토큰_주소로_내려가고_영상이_없으면_404() throws Exception {
+        String shareUrl = completeTrip(mockMvc,
+                "{\"lat\": 37.554698, \"lng\": 126.970698, \"radiusKm\": 50, \"demo\": true}");
+        String path = URI.create(shareUrl).getPath();
+
+        byte[] jpeg = mockMvc.perform(get(path + "/thumbnail.jpg"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.IMAGE_JPEG))
+                .andExpect(header().string("Referrer-Policy", "no-referrer"))
+                .andExpect(header().string("X-Robots-Tag", "noindex, nofollow"))
+                .andReturn().getResponse().getContentAsByteArray();
+        java.awt.image.BufferedImage img = javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(jpeg));
+        org.assertj.core.api.Assertions.assertThat(img.getWidth()).isEqualTo(1280);
+        org.assertj.core.api.Assertions.assertThat(img.getHeight()).isEqualTo(720);
+
+        // 테스트 설정은 recap.video=false → 영상 없음
+        mockMvc.perform(get(path + "/video.mp4")).andExpect(status().isNotFound());
+        // 공유 페이지의 미리보기 이미지는 썸네일
+        mockMvc.perform(get(path))
+                .andExpect(content().string(containsString("og:image\" content=\"" + shareUrl + "/thumbnail.jpg\"")));
+    }
+
+    @Test
+    void 없는_토큰의_미디어는_404() throws Exception {
+        mockMvc.perform(get("/r/{token}/thumbnail.jpg", "AAAAAAAAAAAAAAAAAAAAAA")).andExpect(status().isNotFound());
+        mockMvc.perform(get("/r/{token}/video.mp4", "..%2F..%2Fetc")).andExpect(status().isNotFound());
     }
 
     @Test

@@ -32,16 +32,21 @@ public final class RecapSummarizer {
             km += Geo.distanceKm(a.lat(), a.lng(), b.lat(), b.lng());
         }
 
+        long durationMin = Math.max(0, (data.endedAt() - data.startedAt()) / 60_000L);
+        return new RecapSummaryDto(
+                Math.round(km * 10) / 10.0,
+                (int) durationMin,
+                unexpectedStops(destination, data).size());
+    }
+
+    /** 예상 밖 정차 목록. 요약의 stopCount와 영상의 정차 핀이 같은 규칙을 쓰도록 공개한다. */
+    public static List<StopDetector.Stop> unexpectedStops(DestinationDto destination, FinishTripRequest data) {
+        List<PointDto> points = data.points().stream().sorted(Comparator.comparingLong(PointDto::ts)).toList();
         List<StopDetector.LatLng> planned = new ArrayList<>();
         planned.add(new StopDetector.LatLng(destination.lat(), destination.lng()));
         data.events().stream()
                 .filter(e -> e.type() == EventType.WAYPOINT_ADDED || e.type() == EventType.WAYPOINT_ARRIVED)
                 .forEach(e -> planned.add(new StopDetector.LatLng(e.lat(), e.lng())));
-
-        long durationMin = Math.max(0, (data.endedAt() - data.startedAt()) / 60_000L);
-        return new RecapSummaryDto(
-                Math.round(km * 10) / 10.0,
-                (int) durationMin,
-                StopDetector.detect(points, planned).size());
+        return StopDetector.detect(points, planned);
     }
 }

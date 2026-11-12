@@ -27,4 +27,14 @@ public record ShareProperties(
     public String shareUrl(String token) {
         return publicBaseUrl + "/r/" + token;
     }
+
+    /** 리캡 영상 주소. 공유 링크와 같은 토큰·만료 규칙을 따른다. */
+    public String videoUrl(String token) {
+        return shareUrl(token) + "/video.mp4";
+    }
+
+    /** 리캡 썸네일(16:9) 주소. */
+    public String thumbnailUrl(String token) {
+        return shareUrl(token) + "/thumbnail.jpg";
+    }
 }

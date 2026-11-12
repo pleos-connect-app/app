@@ -8,7 +8,7 @@
   <title th:text="${page.placeName} + ' 랜덤 드라이브'">랜덤 드라이브</title>
   <meta property="og:title" th:content="${page.placeName} + ' 랜덤 드라이브'">
   <meta property="og:description" th:content="${page.distanceText} + ' · ' + ${page.durationText}">
-  <meta property="og:image" th:if="${page.imageUrl}" th:content="${page.imageUrl}">
+  <meta property="og:image" th:if="${page.thumbnailUrl ?: page.imageUrl}" th:content="${page.thumbnailUrl ?: page.imageUrl}">
   <th:block th:replace="~{share-style :: style}"></th:block>
 </head>
 <body>
@@ -31,7 +31,7 @@
   </dl>
 
   <section class="video" th:if="${page.videoUrl}">
-    <video th:src="${page.videoUrl}" controls playsinline preload="metadata"></video>
+    <video th:src="${page.videoUrl}" th:attr="poster=${page.thumbnailUrl}" controls playsinline preload="metadata"></video>
     <a class="button button--ghost" th:href="${page.videoUrl}" download>영상 저장</a>
   </section>
   <section class="video video--pending" th:unless="${page.videoUrl}">

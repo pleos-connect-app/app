@@ -66,10 +66,13 @@ class TripControllerTest {
         String tripId = createTrip();
         finish(tripId, "PENDING");
 
-        // recap을 한 번 조회해서 RUNNING으로 만든 뒤 다시 finish → 새로 시작하지 않고 RUNNING 그대로
+        // 테스트 설정(recap.workers=0)에서는 finish 안에서 생성이 끝나 DONE. 다시 finish → 새로 시작하지 않고 DONE 그대로
+        String shareUrl = JsonPath.read(mockMvc.perform(get("/api/v1/trips/{tripId}/recap", tripId))
+                .andExpect(jsonPath("$.status").value("DONE"))
+                .andReturn().getResponse().getContentAsString(), "$.shareUrl");
+        finish(tripId, "DONE");
         mockMvc.perform(get("/api/v1/trips/{tripId}/recap", tripId))
-                .andExpect(jsonPath("$.status").value("RUNNING"));
-        finish(tripId, "RUNNING");
+                .andExpect(jsonPath("$.shareUrl").value(shareUrl));
     }
 
     @Test
@@ -98,23 +101,18 @@ class TripControllerTest {
     // ---------- [3] recap ----------
 
     @Test
-    void recap_finish전_PENDING_이후_RUNNING_RUNNING_DONE() throws Exception {
+    void recap_finish전_PENDING_생성후_DONE() throws Exception {
         String tripId = createTrip();
 
         mockMvc.perform(get("/api/v1/trips/{tripId}/recap", tripId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("PENDING"));
+                .andExpect(jsonPath("$.status").value("PENDING"))
+                .andExpect(jsonPath("$.shareUrl").value(nullValue()))
+                .andExpect(jsonPath("$.videoUrl").value(nullValue()))
+                .andExpect(jsonPath("$.thumbnailUrl").value(nullValue()))
+                .andExpect(jsonPath("$.summary").value(nullValue()));
 
         finish(tripId, "PENDING");
-
-        for (int i = 0; i < 2; i++) {
-            mockMvc.perform(get("/api/v1/trips/{tripId}/recap", tripId))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.status").value("RUNNING"))
-                    .andExpect(jsonPath("$.shareUrl").value(nullValue()))
-                    .andExpect(jsonPath("$.videoUrl").value(nullValue()))
-                    .andExpect(jsonPath("$.summary").value(nullValue()));
-        }
 
         // 요약은 FINISH_BODY로 실제 계산: 서울시청→안목해변 두 점 직선, 9,000,000ms = 150분, 정차 없음
         double expectedKm = Math.round(Geo.distanceKm(37.5665, 126.9780, 37.7718, 128.9479) * 10) / 10.0;
@@ -123,7 +121,9 @@ class TripControllerTest {
                 .andExpect(jsonPath("$.tripId").value(tripId))
                 .andExpect(jsonPath("$.status").value("DONE"))
                 .andExpect(jsonPath("$.shareUrl").value(matchesPattern("http://localhost:8080/r/[A-Za-z0-9_-]{22}")))
-                .andExpect(jsonPath("$.videoUrl").value(nullValue())) // 영상 생성(F-07) 전
+                .andExpect(jsonPath("$.videoUrl").value(nullValue())) // 테스트 설정은 recap.video=false
+                .andExpect(jsonPath("$.thumbnailUrl")
+                        .value(matchesPattern("http://localhost:8080/r/[A-Za-z0-9_-]{22}/thumbnail\\.jpg")))
                 .andExpect(jsonPath("$.summary.distanceKm").value(expectedKm))
                 .andExpect(jsonPath("$.summary.durationMin").value(150))
                 .andExpect(jsonPath("$.summary.stopCount").value(0))
@@ -145,11 +145,8 @@ class TripControllerTest {
     /** 트립을 끝내고 DONE까지 조회해서 shareUrl을 돌려준다. */
     String finishAndGetShareUrl(String tripId) throws Exception {
         finish(tripId, "PENDING");
-        String json = null;
-        for (int i = 0; i < 3; i++) {
-            json = mockMvc.perform(get("/api/v1/trips/{tripId}/recap", tripId))
-                    .andReturn().getResponse().getContentAsString();
-        }
+        String json = mockMvc.perform(get("/api/v1/trips/{tripId}/recap", tripId))
+                .andReturn().getResponse().getContentAsString();
         return JsonPath.read(json, "$.shareUrl");
     }
 

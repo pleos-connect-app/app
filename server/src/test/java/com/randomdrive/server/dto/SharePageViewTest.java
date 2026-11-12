@@ -26,8 +26,8 @@ class SharePageViewTest {
         DestinationDto d = new DestinationDto("p", "장소", 37.0, 127.0, "주소", "https://img", 1.0);
         RecapSummaryDto s = new RecapSummaryDto(1.0, 1, 0);
 
-        assertThat(SharePageView.of(d, "Type3", 0L, s, null, "u").imageNoDerivatives()).isTrue();
-        assertThat(SharePageView.of(d, "Type1", 0L, s, null, "u").imageNoDerivatives()).isFalse();
-        assertThat(SharePageView.of(d, null, 0L, s, null, "u").imageNoDerivatives()).isFalse();
+        assertThat(SharePageView.of(d, "Type3", 0L, s, null, null, "u").imageNoDerivatives()).isTrue();
+        assertThat(SharePageView.of(d, "Type1", 0L, s, null, null, "u").imageNoDerivatives()).isFalse();
+        assertThat(SharePageView.of(d, null, 0L, s, null, null, "u").imageNoDerivatives()).isFalse();
     }
 }
