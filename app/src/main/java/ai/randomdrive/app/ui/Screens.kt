@@ -1,6 +1,7 @@
 package ai.randomdrive.app.ui
 
 import ai.randomdrive.app.domain.ArrivalSource
+import ai.randomdrive.app.domain.NaviTripCheck
 import ai.randomdrive.app.navi.NaviConnection
 import ai.randomdrive.app.trip.TripPhase
 import ai.randomdrive.app.trip.TripSession
@@ -141,7 +142,10 @@ fun ResultScreen(r: PreTrip.Result, onStart: () -> Unit, onReroll: () -> Unit, o
                 Body("${r.originLabel}에서 직선 ${formatKm(r.destination.distanceKm)}")
                 when {
                     r.naviTripLoading -> Body("내비 경로 계산 중…", muted = true)
-                    r.naviTrip != null -> Body("내비 기준 약 ${formatDuration(r.naviTrip.etaS)} · ${formatKm(r.naviTrip.distanceM / 1000.0)}")
+                    r.naviTrip != null && NaviTripCheck.isPlausible(r.destination.distanceKm, r.naviTrip.distanceM / 1000.0) ->
+                        Body("내비 기준 약 ${formatDuration(r.naviTrip.etaS)} · ${formatKm(r.naviTrip.distanceM / 1000.0)}")
+                    // 내비 출발점이 앱 위치와 다르면(에뮬레이터 내비 위치 고정 등) 어긋난 숫자를 보여 주지 않는다
+                    r.naviTrip != null -> Body("예상 시간은 내비게이션 안내에서 확인할 수 있어요", muted = true)
                     else -> Body("내비 경로 정보를 가져오지 못했어요", muted = true)
                 }
             }
