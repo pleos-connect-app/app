@@ -34,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import java.util.Locale
@@ -209,6 +210,11 @@ fun TripScreen(s: TripSession, onShowNavi: () -> Unit, onEnd: () -> Unit, onDisc
             } else {
                 PrimaryButton("내비게이션으로 돌아가기", onShowNavi)
                 SecondaryButton("여행 종료", { confirmEnd = true })
+                // 앱이 2칸을 다 쓰고 있으면 내비가 가려진 상태. 창 배치는 시스템(홈 화면)이 정하고 앱이 요청할
+                // 공개 API가 없어(에뮬레이터·SDK 확인), 사용자가 직접 나눌 수 있게 방법만 알려 준다.
+                if (LocalConfiguration.current.screenWidthDp >= Tokens.iviTwoPaneMinWidth.value) {
+                    Card { Body("오른쪽 끝 ⋮ 손잡이를 왼쪽으로 끌면 내비와 나란히 볼 수 있어요", muted = true) }
+                }
             }
             TextButton(onClick = { confirmDiscard = true }) { Body("기록 취소", muted = true) }
         },
