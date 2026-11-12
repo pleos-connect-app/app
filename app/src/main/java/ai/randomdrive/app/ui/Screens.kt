@@ -136,7 +136,7 @@ fun DrawingScreen(radiusKm: Int) {
 // ---------------- 추첨 결과 ----------------
 
 @Composable
-fun ResultScreen(r: PreTrip.Result, onStart: () -> Unit, onReroll: () -> Unit, onBack: () -> Unit) {
+fun ResultScreen(r: PreTrip.Result, message: String?, onStart: () -> Unit, onReroll: () -> Unit, onBack: () -> Unit) {
     ResponsivePanes(
         primary = {
             Body("오늘의 랜덤 목적지", muted = true)
@@ -156,6 +156,8 @@ fun ResultScreen(r: PreTrip.Result, onStart: () -> Unit, onReroll: () -> Unit, o
             }
         },
         secondary = {
+            // 다시 뽑기 직전 위치를 잃은 경우 등 ViewModel 메시지도 여기서 보여 준다
+            message?.let { Body(it, error = true) }
             if (r.sendError != null) Body(r.sendError, error = true)
             if (r.sending) {
                 Row(verticalAlignment = Alignment.CenterVertically) {

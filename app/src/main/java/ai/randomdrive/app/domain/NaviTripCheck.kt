@@ -11,6 +11,9 @@ object NaviTripCheck {
     /** 도로 거리는 직선거리보다 짧을 수 없다. GPS 오차를 감안해 10% 여유. */
     private const val MIN_RATIO = 0.9
 
+    /** 짧은 거리에서 GPS·장소 좌표 오차를 감안한 절대 여유(km). */
+    private const val ABS_TOLERANCE_KM = 0.5
+
     /** 이보다 크게 돌아가는 경로는 출발점이 다른 것으로 본다. */
     private const val MAX_RATIO = 2.5
 
@@ -19,7 +22,7 @@ object NaviTripCheck {
 
     fun isPlausible(straightKm: Double, naviKm: Double): Boolean {
         if (straightKm <= 0 || naviKm <= 0) return false
-        if (naviKm < straightKm * MIN_RATIO) return false
+        if (naviKm < straightKm * MIN_RATIO - ABS_TOLERANCE_KM) return false
         return !(naviKm > straightKm * MAX_RATIO && naviKm - straightKm > MAX_EXTRA_KM)
     }
 }

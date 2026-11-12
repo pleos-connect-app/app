@@ -65,6 +65,7 @@ private object PhotoCache {
     private const val TAG = "PlacePhoto"
     private const val MAX_EDGE_PX = 1024
     private const val TIMEOUT_MS = 10_000
+    private const val MAX_BYTES = 5L * 1024 * 1024
 
     private val cache = object : LruCache<String, Bitmap>(8 * 1024 * 1024) {
         override fun sizeOf(key: String, value: Bitmap) = value.byteCount
@@ -80,7 +81,18 @@ private object PhotoCache {
                 readTimeout = TIMEOUT_MS
                 try {
                     if (responseCode !in 200..299) error("HTTP $responseCode")
-                    inputStream.use { it.readBytes() }
+                    if (contentLengthLong > MAX_BYTES) error("too large: $contentLengthLong")
+                    inputStream.use { input ->
+                        val out = java.io.ByteArrayOutputStream()
+                        val buf = ByteArray(16 * 1024)
+                        while (true) {
+                            val n = input.read(buf)
+                            if (n < 0) break
+                            out.write(buf, 0, n)
+                            if (out.size() > MAX_BYTES) error("too large")
+                        }
+                        out.toByteArray()
+                    }
                 } finally {
                     disconnect()
                 }
@@ -88,8 +100,15 @@ private object PhotoCache {
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
             BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
             var sample = 1
-            while (maxOf(bounds.outWidth, bounds.outHeight) / (sample * 2) >= MAX_EDGE_PX) sample *= 2
-            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })
+            // 긴 변이 MAX_EDGE_PX 이하가 될 때까지 줄이고 RGB_565로 디코딩(1024px 기준 약 2MB → 캐시에 여러 장 들어감)
+            while (maxOf(bounds.outWidth, bounds.outHeight) / sample > MAX_EDGE_PX) sample *= 2
+            BitmapFactory.decodeByteArray(
+                bytes, 0, bytes.size,
+                BitmapFactory.Options().apply {
+                    inSampleSize = sample
+                    inPreferredConfig = Bitmap.Config.RGB_565
+                },
+            )
         }.onFailure { Log.w(TAG, "photo load failed: ${it.message}") }
             .getOrNull()
             ?.also { cache.put(url, it) }

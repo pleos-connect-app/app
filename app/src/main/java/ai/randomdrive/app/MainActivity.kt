@@ -70,7 +70,7 @@ class MainActivity : ComponentActivity() {
                                 }
                                 is PreTrip.Result -> {
                                     BackHandler(enabled = !p.sending) { vm.backToHome() }
-                                    ResultScreen(p, vm::startNavigation, { vm.draw(p.radiusKm, reroll = true) }, vm::backToHome)
+                                    ResultScreen(p, state.message, vm::startNavigation, { vm.draw(p.radiusKm, reroll = true) }, vm::backToHome)
                                 }
                             }
                             s.phase == TripPhase.RECORDING || s.phase == TripPhase.ARRIVED -> {

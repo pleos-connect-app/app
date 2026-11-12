@@ -31,6 +31,12 @@ class NaviTripCheckTest {
     }
 
     @Test
+    fun veryShortTripToleratesCoordinateError() {
+        // 직선 1.2km, 도로 1.0km: 장소 좌표·GPS 오차 범위라 보여 준다
+        assertTrue(NaviTripCheck.isPlausible(straightKm = 1.2, naviKm = 1.0))
+    }
+
+    @Test
     fun missingValuesAreHidden() {
         assertFalse(NaviTripCheck.isPlausible(straightKm = 10.0, naviKm = 0.0))
         assertFalse(NaviTripCheck.isPlausible(straightKm = 0.0, naviKm = 5.0))
