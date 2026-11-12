@@ -178,6 +178,7 @@ class MainViewModel(app: Application, private val c: AppContainer) : AndroidView
             message.value = "현재 위치를 확인한 뒤 다시 시도해 주세요"
             return
         }
+        message.value = null
         val seen = (preTrip.value as? PreTrip.Result)?.let { if (reroll) it.seenPlaceIds + it.destination.placeId else emptySet() }
             ?: emptySet()
         preTrip.value = PreTrip.Drawing(radiusKm)

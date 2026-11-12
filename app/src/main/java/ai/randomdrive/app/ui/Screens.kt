@@ -50,6 +50,7 @@ fun HomeScreen(
     onOpenLocationSettings: () -> Unit,
     onDraw: (Int) -> Unit,
     onRetryNavi: () -> Unit,
+    onDismissMessage: () -> Unit,
 ) {
     var radius by remember { mutableStateOf(MainViewModel.RADIUS_OPTIONS.first()) }
     val ready = state.location is LocationState.Ready
@@ -82,7 +83,9 @@ fun HomeScreen(
         },
         secondary = {
             Title("얼마나 멀리 갈까요?")
-            RadiusSelector(selected = radius, onSelect = { radius = it })
+            RadiusSelector(selected = radius, onSelect = { radius = it; onDismissMessage() })
+            // 오류는 잠깐 뜨는 알림 대신 다음 행동 전까지 화면에 남긴다(주행 환경에서 놓치기 쉬움)
+            state.message?.let { Card { Body(it, error = true) } }
             PrimaryButton("목적지 뽑기", onClick = { onDraw(radius) }, enabled = ready)
             if (state.usingFakeServer) Body("개발용: 앱 내장 후보 목록 사용 중 (서버 미연결)", muted = true)
         },

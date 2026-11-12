@@ -25,11 +25,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -56,12 +52,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             RandomDriveTheme {
                 val state by vm.state.collectAsStateWithLifecycle()
-                val snackbar = remember { SnackbarHostState() }
-                LaunchedEffect(state.message) {
-                    state.message?.let { snackbar.showSnackbar(it); vm.consumeMessage() }
-                }
                 Scaffold(
-                    snackbarHost = { SnackbarHost(snackbar) },
                     containerColor = MaterialTheme.colorScheme.background,
                 ) { padding ->
                     Box(Modifier.fillMaxSize().padding(padding)) {
@@ -71,7 +62,7 @@ class MainActivity : ComponentActivity() {
                                 PreTrip.Home -> {
                                     // 최상위 화면 Back = 앱 종료가 아니라 백그라운드로(CCP 가이드)
                                     BackHandler { moveTaskToBack(true) }
-                                    HomeScreen(state, ::requestPermissions, ::openLocationSettings, vm::draw, vm::retryNaviConnect)
+                                    HomeScreen(state, ::requestPermissions, ::openLocationSettings, vm::draw, vm::retryNaviConnect, vm::consumeMessage)
                                 }
                                 is PreTrip.Drawing -> {
                                     BackHandler { }
