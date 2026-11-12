@@ -1,0 +1,4 @@
+# HTTPS 인증서(Let's Encrypt)는 Caddy가 자동으로 받고 갱신한다. __DOMAIN__은 setup.sh가 채운다.
+__DOMAIN__ {
+	reverse_proxy 127.0.0.1:8080
+}

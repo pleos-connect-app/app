@@ -1,0 +1,19 @@
+[Unit]
+Description=RandomDrive API server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=randomdrive
+Group=randomdrive
+WorkingDirectory=/var/lib/randomdrive
+EnvironmentFile=/etc/randomdrive.env
+# 1GB 메모리 서버 기준. 외부에는 Caddy(443)만 열고 서버는 127.0.0.1에서만 받는다.
+ExecStart=/usr/bin/java -Xmx512m -XX:+UseSerialGC -Djava.awt.headless=true -jar /opt/randomdrive/server.jar --server.address=127.0.0.1 --server.port=8080
+Restart=on-failure
+RestartSec=5
+# 영상 인코딩이 CPU를 몰아 쓰지 않게
+Nice=5
+
+[Install]
+WantedBy=multi-user.target

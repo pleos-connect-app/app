@@ -15,6 +15,7 @@ import java.nio.file.Path;
  * @param downloadPhotos false면 목적지 사진을 받지 않는다(테스트·오프라인용).
  * @param workers        동시에 만드는 리캡 수. 0이면 별도 스레드 없이 finish 요청 안에서 바로 만든다(테스트용).
  * @param fontFile       한글 글꼴 파일(.ttf/.otf) 경로. 비우면 설치된 한글 글꼴을 찾아 쓴다.
+ * @param maxTiles       영상 한 편에 받을 지도 타일 상한(타일 1장 ≈ 256KB 메모리, VWorld 호출 수). 메모리가 작은 서버는 낮춘다.
  */
 @ConfigurationProperties("recap")
 public record RecapProperties(
@@ -24,6 +25,7 @@ public record RecapProperties(
         @DefaultValue("ffmpeg") String ffmpegPath,
         @DefaultValue("true") boolean downloadPhotos,
         @DefaultValue("1") int workers,
-        @DefaultValue("") String fontFile
+        @DefaultValue("") String fontFile,
+        @DefaultValue("1200") int maxTiles
 ) {
 }

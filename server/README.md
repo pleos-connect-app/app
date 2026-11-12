@@ -99,6 +99,22 @@ curl http://localhost:8080/api/v1/trips/{tripId}/recap
 - 리캡 한 건에 PC에서 약 7초(지도 타일을 받으면 그만큼 더). 동시에 `recap.workers`(기본 1)건씩 만든다.
 - 공유 기간이 지난 파일은 서버 시작 때 지운다.
 
+## 배포 (AWS Lightsail)
+
+테스트 서버: `https://13-125-180-227.sslip.io` (Ubuntu 24.04, 서울). 구성: Caddy(443, 인증서 자동) → 서버(127.0.0.1:8080, systemd `randomdrive`). 파일은 `deploy/`.
+
+```bash
+# 코드 배포(빌드 → 업로드 → 재시작 → 상태 확인). 메모리 저장소라 기존 트립·링크가 사라진다.
+server/deploy/deploy.sh ubuntu@13.125.180.227 13-125-180-227.sslip.io ~/.ssh/randomdrive-key.pem
+
+# 새 서버 처음 한 번: --setup (Java 21·ffmpeg·한글 글꼴·Caddy·스왑·서비스 등록)
+server/deploy/deploy.sh ubuntu@<IP> <IP를 -로>.sslip.io <키.pem> --setup
+```
+
+- 비밀값은 서버의 `/etc/randomdrive.env`에만 둔다(틀: `deploy/randomdrive.env.example`). 바꾼 뒤 `sudo systemctl restart randomdrive`.
+- 로그: `ssh ... 'sudo journalctl -u randomdrive -n 100 --no-pager'`
+- 영상 파일: `/var/lib/randomdrive/recaps/`
+
 ## 공유 링크 주소 (QR)
 
 `shareUrl`은 `share.public-base-url`(기본 `http://localhost:8080`) + `/r/{token}`이다.

@@ -43,8 +43,6 @@ public class RecapMediaService {
 
     private static final Logger log = LoggerFactory.getLogger(RecapMediaService.class);
     private static final Pattern TOKEN = Pattern.compile("[A-Za-z0-9_-]{22}");
-    /** 영상 한 편에 받을 지도 타일 상한(VWorld 호출 수·메모리 보호, 타일 1장 ≈ 256KB). */
-    private static final int MAX_TILES = 1200;
 
     /** 만들어진 파일. */
     public record Media(boolean video, boolean thumbnail) {
@@ -194,7 +192,7 @@ public class RecapMediaService {
             }
             map.collectTiles(plan.camera(plan.frames() - 1), needed);
             long started = System.currentTimeMillis();
-            cache.prefetch(needed, source, MAX_TILES);
+            cache.prefetch(needed, source, props.maxTiles());
             log.info("Recap map tiles: {} needed, {} fetched, {}ms", needed.size(), cache.size(),
                     System.currentTimeMillis() - started);
         }
