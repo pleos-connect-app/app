@@ -53,6 +53,9 @@ Pleos Connect 앱(`../`)이 호출하는 API 서버. 앱 쪽 `CLAUDE.md`의 Pleo
 - 없는 `tripId` → 404 `TRIP_NOT_FOUND`.
 
 응답: `{"tripId": "...", "status": "PENDING"}`
+- 여행은 항상 사용자가 "여행 종료"를 눌러 끝난다(목적지 도착으로 자동 종료되지 않음). 그래서 `points`에는 도착 후 주변을 돌아다닌 기록도 들어가고, `endedAt`은 사용자가 종료를 누른 시각이다.
+- 도착 여부는 `DESTINATION_ARRIVED` 이벤트 유무로 판단한다(`endReason` 필드는 두지 않기로 합의, handoff 3-4). 도착하지 않고 끝낸 여행도 있다.
+- 출발지 이름은 앱이 보내지 않는다(`origin` 필드 없음, handoff 3-3). 필요하면 서버가 `points[0]` 좌표로 찾는다.
 - 같은 `tripId`로 재전송 시 새로 시작하지 않고 현재 상태를 그대로 반환(멱등). 받은 데이터도 바꾸지 않는다.
 - 단, 상태가 `FAILED`면 새로 받은 데이터로 처음부터 다시 생성하고 `PENDING`을 반환(앱 "다시 시도", handoff 3-5).
 
@@ -64,6 +67,8 @@ Pleos Connect 앱(`../`)이 호출하는 API 서버. 앱 쪽 `CLAUDE.md`의 Pleo
 - `DONE`이 처음 될 때 요약을 계산하고 공유 토큰을 발급한다. 이후 조회는 같은 값.
   - `shareUrl`: `{share.public-base-url}/r/{token}`. token은 128비트 난수(URL-safe base64 22자).
   - `videoUrl`: 영상 생성(F-07) 전까지 `null`.
+  - `thumbnailUrl`(합의됨, 영상 생성과 함께 추가 예정 · handoff 3-2): nullable, https. `DONE`일 때만 채운다. 앱 결과 화면에 가로로 크게 들어가므로 16:9. 내용은 리캡 영상 첫 장면(표지)이면 되고, 공유 페이지 영상 썸네일과 같은 이미지를 써도 된다. `null`이면 앱은 목적지 사진을 보여 준다.
+- 랜덤 목적지 요청의 `excludePlaceIds`는 두지 않기로 합의(handoff 3-1, 후보 1만 곳이라 불필요).
   - `summary`: finish 데이터로 계산(`RecapSummarizer`, 앱 `localSummary`와 같은 규칙). `distanceKm` 경로 길이(소수 첫째 자리), `durationMin` `endedAt-startedAt`(분, 버림), `stopCount` 예상 밖 정차(`StopDetector`, 앱과 같은 규칙: 60m 안 5분 이상·앞뒤 주행·목적지/경유지 300m 밖).
 - 없는 `tripId` → 404 `TRIP_NOT_FOUND`.
 
