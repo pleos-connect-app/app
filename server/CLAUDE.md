@@ -15,6 +15,7 @@ Pleos Connect 앱(`../`)이 호출하는 API 서버. 앱 쪽 `CLAUDE.md`의 Pleo
 - `dto` — 요청/응답 JSON 형태. Java `record`로 작성, 요청은 `@Valid` + Bean Validation으로 검증.
 - `service` — 비즈니스 로직과 저장소.
 - `exception` — `ApiException` 계열 예외 + `GlobalExceptionHandler`(`@RestControllerAdvice`).
+- `security` — `/api` 앞단 보호(`ApiGuardFilter`: 앱 키·IP당 요청 수 제한, `RateLimiter`).
 - `persistence` — DB 저장. `TripStore`(트립 한 건 = 메모리 객체 하나로 캐시, 상태를 바꾼 쪽이 `synchronized(trip)` 안에서 save), 엔티티 `TripEntity`(목적지·상태·요약·공유 토큰), `TripFinishEntity`(주행 데이터 JSON, 생성할 때만 읽음).
 - `recap` — 리캡 영상·썸네일 생성(F-07). `RecapMediaService`(조립·파일), `RecapPainter`(장면 그리기, 네트워크 없음), `FfmpegEncoder`, `RouteCamera`(경로 장면 카메라 움직임)·`PerspectiveMap`(기울인 지도 2.5D 렌더링)·`TileCache`(타일 미리 받기), `MapView`(썸네일용 평면 지도), `RouteMask`(출발지 가리기), `VWorldClient`(위성 타일·역지오코딩), `PhotoLoader`. 생성 작업 스레드는 `RecapExecutorConfig`(`recap.workers`, 0이면 요청 안에서 바로 — 테스트용).
 - `tourapi` — 한국관광공사 TourAPI 연동. 요청 처리 중에는 호출하지 않고, `./gradlew importCandidates`(프로필 `local,import`)로 후보 파일을 만들 때만 쓴다.
@@ -34,7 +35,9 @@ Pleos Connect 앱(`../`)이 호출하는 API 서버. 앱 쪽 `CLAUDE.md`의 Pleo
 
 공통 규칙:
 - 시간은 epoch 밀리초(`long`), 좌표는 `lat`/`lng`(`double`).
-- 오류 응답: HTTP 상태코드 + `{"code": "...", "message": "..."}`. 코드: `INVALID_REQUEST`(400), `TRIP_NOT_FOUND`(404), `NO_CANDIDATE`(404).
+- 오류 응답: HTTP 상태코드 + `{"code": "...", "message": "..."}`. 코드: `INVALID_REQUEST`(400), `UNAUTHORIZED`(401), `TRIP_NOT_FOUND`(404), `NO_CANDIDATE`(404), `RATE_LIMITED`(429, `Retry-After` 헤더 = 초).
+- 앱 키: `/api/v1/**` 요청은 `X-App-Key` 헤더를 보낸다. 서버에 `api.keys`(환경변수 `API_KEYS`, 쉼표로 여러 개 = 교체 기간)가 설정돼 있을 때만 검사한다. 공유 페이지 `/r/**`는 검사하지 않는다.
+- 요청 수 제한(클라이언트 IP당, `security/ApiGuardFilter`): 목적지 추첨 분당 30, finish 시간당 30, 리캡 조회 분당 120, 그 밖 분당 60. `api.rate-limit.*`로 조정.
 - `TripStatus`: `PENDING`, `RUNNING`, `DONE`, `FAILED`.
 
 ### 1. `POST /api/v1/destinations/random` → 200
