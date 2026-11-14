@@ -14,7 +14,7 @@ public final class RouteCamera {
 
     static final double PITCH = Math.toRadians(55);
     /** 경로 장면 안 시간표(초). */
-    static final double HOLD_IN = 0.5, DESCEND = 0.9, FOLLOW = 3.5, RISE = 0.8;
+    static final double HOLD_IN = 0.5, DESCEND = 0.9, FOLLOW = 6.0, RISE = 0.8;
     private static final double METERS_PER_WORLD0 = 156_543.03392;
 
     /** 줌 0 월드 좌표로 바꾼 경로 조각들과 누적 길이. */

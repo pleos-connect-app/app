@@ -47,7 +47,7 @@ class RecapPainterTest {
             assertThat(frame.getHeight()).isEqualTo(1280);
             frames[0]++;
         });
-        assertThat(frames[0]).isEqualTo(RecapPainter.FRAME_COUNT).isEqualTo(300);
+        assertThat(frames[0]).isEqualTo(RecapPainter.FRAME_COUNT).isEqualTo(375);
     }
 
     @Test

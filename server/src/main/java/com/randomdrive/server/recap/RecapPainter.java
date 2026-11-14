@@ -22,11 +22,11 @@ import java.util.Locale;
 /**
  * 리캡 영상 프레임과 썸네일을 그린다(Java2D). 네트워크·파일은 다루지 않는다.
  *
- * 영상(9:16, 720×1280, 30fps, 10초):
+ * 영상(9:16, 720×1280, 30fps, 12.5초):
  * 1. 표지 0~2초: 목적지 사진, 날짜, 목적지 이름, "출발 동네 →"
- * 2. 경로 2~8초: 내비처럼 기울인 지도 위를 카메라가 차를 따라가며 경로선을 그린다(RouteCamera, PerspectiveMap).
+ * 2. 경로 2~10.5초: 내비처럼 기울인 지도 위를 카메라가 차를 따라가며 경로선을 그린다(RouteCamera, PerspectiveMap).
  *    출발지 1.5km는 가림, 정차한 곳에 핀, 거리가 올라감
- * 3. 요약 8~10초: 도착 문구, 거리·시간·정차 횟수
+ * 3. 요약 10.5~12.5초: 도착 문구, 거리·시간·정차 횟수
  *
  * 썸네일(16:9, 1280×720): 표지와 같은 내용. 앱 결과 화면·공유 페이지 영상 포스터에 쓴다.
  *
@@ -41,7 +41,7 @@ public final class RecapPainter {
     public static final int FPS = 30;
 
     static final double COVER_S = 2.0;
-    static final double ROUTE_S = 6.0;
+    static final double ROUTE_S = 8.5;
     static final double SUMMARY_S = 2.0;
     /** 경로 장면 프레임 수(RouteCamera.plan에 넘긴다). */
     public static final int ROUTE_FRAMES = (int) Math.round(ROUTE_S * FPS);

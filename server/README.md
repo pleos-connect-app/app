@@ -93,7 +93,7 @@ curl http://localhost:8080/api/v1/trips/{tripId}/recap
 
 ## 리캡 영상
 
-- 9:16(720×1280) 10초 MP4, 썸네일 16:9(1280×720) JPEG. 파일은 `recap.storage-dir`(기본 `data/recaps/`, 환경변수 `RECAP_STORAGE_DIR`)에 공유 토큰 이름으로 저장되고, `/r/{token}/video.mp4`·`/r/{token}/thumbnail.jpg`로 내려간다(공유 링크와 같은 만료).
+- 9:16(720×1280) 12.5초 MP4, 썸네일 16:9(1280×720) JPEG. 파일은 `recap.storage-dir`(기본 `data/recaps/`, 환경변수 `RECAP_STORAGE_DIR`)에 공유 토큰 이름으로 저장되고, `/r/{token}/video.mp4`·`/r/{token}/thumbnail.jpg`로 내려간다(공유 링크와 같은 만료).
 - 공유되는 영상이라 **출발지 1.5km 안의 경로·정차는 그리지 않고**, 출발지는 동네 이름으로만 쓴다.
 - 경로 장면은 내비처럼 기울인 위성 지도(2.5D) 위를 카메라가 차를 따라간다(`recap/RouteCamera`, `PerspectiveMap`). 필요한 타일은 미리 병렬로 받는다(영상 한 편 최대 1,200장, 먼 곳은 낮은 줌). 키가 없으면 격자 바닥.
 - 리캡 한 건에 PC에서 약 7초(지도 타일을 받으면 그만큼 더). 동시에 `recap.workers`(기본 1)건씩 만든다.

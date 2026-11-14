@@ -11,7 +11,7 @@ import static org.assertj.core.api.Assertions.within;
 /** 경로 장면 카메라: 전체 보기 → 기울여 따라가기 → 전체 보기, 그리고 원근 투영이 맞는지. */
 class RouteCameraTest {
 
-    private static final int W = 720, H = 1280, FRAMES = 180;
+    private static final int W = 720, H = 1280, FRAMES = RecapPainter.ROUTE_FRAMES;
 
     /** 서쪽에서 동쪽으로 가는 직선 경로(약 30km). */
     private static RecapScene eastbound() {
