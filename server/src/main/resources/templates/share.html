@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow">
   <meta name="referrer" content="no-referrer">
-  <title th:text="${page.placeName} + ' 랜덤 드라이브'">랜덤 드라이브</title>
-  <meta property="og:title" th:content="${page.placeName} + ' 랜덤 드라이브'">
+  <title th:text="${page.placeName} + ' · 갈래말래'">갈래말래</title>
+  <meta property="og:title" th:content="${page.placeName} + ' · 갈래말래'">
   <meta property="og:description" th:content="${page.distanceText} + ' · ' + ${page.durationText}">
   <meta property="og:image" th:if="${page.thumbnailUrl ?: page.imageUrl}" th:content="${page.thumbnailUrl ?: page.imageUrl}">
   <th:block th:replace="~{share-style :: style}"></th:block>
@@ -19,7 +19,7 @@
   </figure>
 
   <header class="head">
-    <p class="eyebrow">랜덤 드라이브 · <span th:text="${page.dateText}">2026년 11월 11일</span></p>
+    <p class="eyebrow">갈래말래 · <span th:text="${page.dateText}">2026년 11월 11일</span></p>
     <h1 th:text="${page.placeName}">장소</h1>
     <p class="address" th:text="${page.address}">주소</p>
   </header>
@@ -38,12 +38,12 @@
     <p>리캡 영상은 준비 중이에요.</p>
   </section>
 
-  <button class="button" type="button" id="share" th:attr="data-url=${page.shareUrl},data-title=${page.placeName} + ' 랜덤 드라이브'">
+  <button class="button" type="button" id="share" th:attr="data-url=${page.shareUrl},data-title=${page.placeName} + ' · 갈래말래'">
     공유하기
   </button>
   <p class="toast" id="toast" role="status" aria-live="polite"></p>
 
-  <footer class="foot">RandomDrive · 장소 정보 출처: 한국관광공사</footer>
+  <footer class="foot">갈래말래 · 장소 정보 출처: 한국관광공사</footer>
 </main>
 <script>
   (function () {

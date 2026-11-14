@@ -127,7 +127,7 @@ public final class RecapPainter {
 
         int x = 56, w = VIDEO_W - 112;
         int y = photoH + 64;
-        y = drawText(g, "RANDOM DRIVE · " + scene.dateText(), fonts.bold(26), MUTED, x, y, w, 1, 26) + 18;
+        y = drawText(g, "갈래말래 · " + scene.dateText(), fonts.bold(26), MUTED, x, y, w, 1, 26) + 18;
         y = drawText(g, scene.placeName(), fonts.bold(68), TEXT, x, y, w, 2, 44) + 20;
         if (scene.originName() != null) {
             drawText(g, scene.originName() + " →", fonts.regular(32), MUTED, x, y, w, 1, 24);
@@ -302,7 +302,7 @@ public final class RecapPainter {
         y = drawStat(g, "주행 시간", scene.durationText(), x, y, w) + 40;
         drawStat(g, "예상 밖 정차", Math.round(scene.stopCount() * eased) + "번", x, y, w);
 
-        drawText(g, "RandomDrive", fonts.bold(30), ROUTE, x, VIDEO_H - 130, w, 1, 30);
+        drawText(g, "갈래말래", fonts.bold(30), ROUTE, x, VIDEO_H - 130, w, 1, 30);
         if (mapTiles) {
             drawCredit(g, VWorldClient.ATTRIBUTION, VIDEO_W - 24, VIDEO_H - 28, MUTED);
         }
@@ -341,7 +341,7 @@ public final class RecapPainter {
 
         int x = 56, w = px - 100;
         int y = 80;
-        y = drawText(g, "RANDOM DRIVE · " + scene.dateText(), fonts.bold(24), MUTED, x, y, w, 1, 18) + 20;
+        y = drawText(g, "갈래말래 · " + scene.dateText(), fonts.bold(24), MUTED, x, y, w, 1, 18) + 20;
         y = drawText(g, scene.placeName(), fonts.bold(60), TEXT, x, y, w, 3, 36) + 18;
         if (scene.originName() != null) {
             drawText(g, scene.originName() + " →", fonts.regular(28), MUTED, x, y, w, 1, 20);
