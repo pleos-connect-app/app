@@ -284,7 +284,7 @@ fun RecapScreen(s: TripSession, onNewTrip: () -> Unit) {
         primary = {
             Body("리캡 영상 완성", muted = true)
             Text("${s.originLabel} → ${s.destination.name}", style = MaterialTheme.typography.displaySmall, color = MaterialTheme.colorScheme.onSurface)
-            PlacePhoto(s.destination.imageUrl)
+            RecapThumbnail(s.thumbnailUrl, s.destination.imageUrl)
             if (summary != null) {
                 Card {
                     Body("이동 거리 ${formatKm(summary.distanceKm)}")

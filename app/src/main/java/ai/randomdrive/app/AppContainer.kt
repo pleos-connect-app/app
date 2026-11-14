@@ -21,7 +21,7 @@ class AppContainer(private val context: Context) {
     val demoMode: Boolean = BuildConfig.DEMO_MODE
 
     val api: RecapApi by lazy {
-        if (usingFakeServer) FakeRecapApi(candidates = { candidates }) else HttpRecapApi(BuildConfig.SERVER_BASE_URL)
+        if (usingFakeServer) FakeRecapApi(candidates = { candidates }) else HttpRecapApi(BuildConfig.SERVER_BASE_URL, BuildConfig.SERVER_API_KEY)
     }
 
     private val candidates: List<Candidate> by lazy { loadCandidates() }

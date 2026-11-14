@@ -32,6 +32,7 @@ data class TripSession(
     /** finish API 성공 여부(재시도·복원 시 중복 전송 판단용. 서버는 멱등이라 다시 보내도 안전). */
     val finishAccepted: Boolean = false,
     val shareUrl: String? = null,
+    val thumbnailUrl: String? = null,
     val summary: RecapSummary? = null,
     /** 앱이 계산한 요약(서버 요약이 없을 때 표시). */
     val localSummary: RecapSummary? = null,

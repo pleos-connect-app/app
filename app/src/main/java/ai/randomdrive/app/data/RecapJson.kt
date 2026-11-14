@@ -57,6 +57,7 @@ object RecapJson {
             shareUrl = o.optStringOrNull("shareUrl"),
             videoUrl = o.optStringOrNull("videoUrl"),
             summary = s?.let { RecapSummary(it.getDouble("distanceKm"), it.getInt("durationMin"), it.getInt("stopCount")) },
+            thumbnailUrl = o.optStringOrNull("thumbnailUrl"),
         )
     }
 

@@ -47,6 +47,13 @@ class RecapJsonTest {
         assertEquals(RecapStatus.DONE, r.status)
         assertEquals(2, r.summary!!.stopCount)
         assertEquals("http://x/r/demo123", r.shareUrl)
+        assertNull(r.thumbnailUrl) // 필드가 없는 옛 응답도 그대로 읽는다
+    }
+
+    @Test fun `리캡 응답 - thumbnailUrl`() {
+        val r = RecapJson.parseRecap("""{"tripId":"t_1","status":"DONE","shareUrl":"https://x/r/abc","videoUrl":null,"thumbnailUrl":"https://x/r/abc/thumbnail.jpg","summary":{"distanceKm":1.0,"durationMin":3,"stopCount":0}}""")
+        assertEquals("https://x/r/abc/thumbnail.jpg", r.thumbnailUrl)
+        assertNull(RecapJson.parseRecap("""{"tripId":"t_1","status":"DONE","thumbnailUrl":null}""").thumbnailUrl)
     }
 
     @Test fun `알 수 없는 상태값은 RUNNING으로 보고 계속 조회`() {

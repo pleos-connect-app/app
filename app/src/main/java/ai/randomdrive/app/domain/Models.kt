@@ -48,4 +48,6 @@ data class Recap(
     val shareUrl: String?,
     val videoUrl: String?,
     val summary: RecapSummary?,
+    /** 리캡 표지 이미지(16:9 JPEG). DONE일 때만, 못 만들었으면 null(서버 handoff 3-2). */
+    val thumbnailUrl: String? = null,
 )

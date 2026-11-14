@@ -111,6 +111,7 @@ class TripStore(dir: File) {
             })
             put("finishAccepted", s.finishAccepted)
             put("shareUrl", s.shareUrl ?: JSONObject.NULL)
+            put("thumbnailUrl", s.thumbnailUrl ?: JSONObject.NULL)
             put("summary", s.summary?.let(::summaryJson) ?: JSONObject.NULL)
             put("localSummary", s.localSummary?.let(::summaryJson) ?: JSONObject.NULL)
             put("pointCount", s.pointCount)
@@ -140,6 +141,7 @@ class TripStore(dir: File) {
                 events = events,
                 finishAccepted = o.optBoolean("finishAccepted", false),
                 shareUrl = o.optNullableString("shareUrl"),
+                thumbnailUrl = o.optNullableString("thumbnailUrl"),
                 summary = o.optJSONObject("summary")?.let(::parseSummary),
                 localSummary = o.optJSONObject("localSummary")?.let(::parseSummary),
                 pointCount = o.optInt("pointCount", 0),

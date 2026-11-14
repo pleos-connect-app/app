@@ -9,7 +9,8 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /** 실서버 구현. HttpURLConnection + org.json (추가 라이브러리 없음). */
-class HttpRecapApi(private val baseUrl: String) : RecapApi {
+/** [apiKey]: 서버 앱 키. 비어 있지 않으면 모든 요청에 X-App-Key 헤더로 보낸다(서버 계약, 401 UNAUTHORIZED 방지). */
+class HttpRecapApi(private val baseUrl: String, private val apiKey: String = "") : RecapApi {
 
     // excludePlaceIds는 아직 서버 계약에 없어 보내지 않는다(서버 작업 요청서 3-1). 대신 화면 쪽에서 같은 곳이 나오면 다시 요청한다.
     override suspend fun randomDestination(lat: Double, lng: Double, radiusKm: Int, demo: Boolean, excludePlaceIds: Set<String>) =
@@ -36,6 +37,7 @@ class HttpRecapApi(private val baseUrl: String) : RecapApi {
             conn.connectTimeout = TIMEOUT_MS
             conn.readTimeout = TIMEOUT_MS
             conn.setRequestProperty("Accept", "application/json")
+            if (apiKey.isNotBlank()) conn.setRequestProperty("X-App-Key", apiKey)
             if (body != null) {
                 conn.doOutput = true
                 conn.setRequestProperty("Content-Type", "application/json; charset=utf-8")

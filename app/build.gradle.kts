@@ -19,6 +19,8 @@ val localProps = Properties().apply {
     rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
 }
 val vworldKey = (project.findProperty("randomdrive.vworldKey") as String?) ?: localProps.getProperty("randomdrive.vworldKey", "")
+// 서버 앱 키(X-App-Key 헤더). local.properties의 randomdrive.apiKey(git 미포함) 또는 -P로 전달. 비우면 헤더를 보내지 않는다.
+val serverApiKey = (project.findProperty("randomdrive.apiKey") as String?) ?: localProps.getProperty("randomdrive.apiKey", "")
 if (gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) } &&
     !releaseServerBaseUrl.startsWith("https://")
 ) {
@@ -40,6 +42,7 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "VWORLD_API_KEY", "\"$vworldKey\"")
+        buildConfigField("String", "SERVER_API_KEY", "\"$serverApiKey\"")
     }
 
     buildTypes {

@@ -30,7 +30,7 @@ class TripStoreTest {
         repeat(25) { i -> store.appendPoint(TrackPoint(37.5 + i * 0.001, 127.0, 2_000L + i)) }
         store.addEvent(TripEvent(TripEventType.DESTINATION_SET, 1_500L, 37.5547, 126.9707, "남한산성"))
         store.update { it.copy(phase = TripPhase.ARRIVED, arrivalSource = ArrivalSource.APP_GEOFENCE, endedAt = 9_000L,
-            localSummary = RecapSummary(20.1, 30, 1)) }
+            localSummary = RecapSummary(20.1, 30, 1), thumbnailUrl = "https://x/r/abc/thumbnail.jpg") }
 
         val reopened = TripStore(dir)
         val s = reopened.session.value!!
@@ -40,6 +40,7 @@ class TripStoreTest {
         assertEquals(1, s.events.size)
         assertEquals("남한산성", s.events[0].name)
         assertEquals(RecapSummary(20.1, 30, 1), s.localSummary)
+        assertEquals("https://x/r/abc/thumbnail.jpg", s.thumbnailUrl)
         assertEquals(25, reopened.points().size)
         assertEquals(2_024L, reopened.points().last().ts)
     }

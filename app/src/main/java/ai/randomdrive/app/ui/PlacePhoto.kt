@@ -8,6 +8,7 @@ import android.util.LruCache
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -60,6 +61,46 @@ fun PlacePhoto(url: String?, modifier: Modifier = Modifier) {
 
 private const val PHOTO_CREDIT = "사진: 한국관광공사"
 
+private sealed interface ThumbLoad {
+    data object Loading : ThumbLoad
+    data object Failed : ThumbLoad
+    data class Loaded(val bitmap: Bitmap) : ThumbLoad
+}
+
+/**
+ * 리캡 표지 썸네일(서버 thumbnailUrl, 16:9 1280×720). 영상 첫 장면과 같은 이미지라 사진·지도 출처가 이미지 안에 그려져 있어
+ * 따로 출처 줄을 붙이지 않는다. 썸네일이 없거나(null) 받지 못하면 목적지 사진([PlacePhoto])으로 대신한다.
+ * 받는 동안에는 같은 크기의 빈 자리를 두어 화면이 튀지 않게 한다.
+ */
+@Composable
+fun RecapThumbnail(thumbnailUrl: String?, placePhotoUrl: String?, modifier: Modifier = Modifier) {
+    if (thumbnailUrl.isNullOrBlank()) {
+        PlacePhoto(placePhotoUrl, modifier)
+        return
+    }
+    val initial: ThumbLoad = PhotoCache.peek(thumbnailUrl)?.let { ThumbLoad.Loaded(it) } ?: ThumbLoad.Loading
+    val load by produceState(initial, thumbnailUrl) {
+        if (value == ThumbLoad.Loading) {
+            value = PhotoCache.load(thumbnailUrl, THUMBNAIL_MAX_EDGE_PX)?.let { ThumbLoad.Loaded(it) } ?: ThumbLoad.Failed
+        }
+    }
+    val shape = RoundedCornerShape(Tokens.iviCardRadius)
+    val frame = modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(shape)
+    when (val l = load) {
+        ThumbLoad.Loading -> Surface(color = MaterialTheme.colorScheme.surface, shape = shape, modifier = frame) {}
+        ThumbLoad.Failed -> PlacePhoto(placePhotoUrl, modifier)
+        is ThumbLoad.Loaded -> Image(
+            l.bitmap.asImageBitmap(),
+            contentDescription = "리캡 영상 표지",
+            contentScale = ContentScale.Fit,
+            modifier = frame,
+        )
+    }
+}
+
+/** 서버 썸네일 원본(1280px)을 줄이지 않고 받는다 — 가로로 크게 보여 줄 때 글자가 뭉개지지 않게. */
+private const val THUMBNAIL_MAX_EDGE_PX = 1280
+
 /** 작은 메모리 캐시 + 다운샘플링 로더. 라이브러리 없이 HttpURLConnection으로 충분한 규모. */
 private object PhotoCache {
     private const val TAG = "PlacePhoto"
@@ -73,7 +114,7 @@ private object PhotoCache {
 
     fun peek(url: String): Bitmap? = cache.get(url)
 
-    suspend fun load(url: String): Bitmap? = withContext(Dispatchers.IO) {
+    suspend fun load(url: String, maxEdgePx: Int = MAX_EDGE_PX): Bitmap? = withContext(Dispatchers.IO) {
         if (!url.startsWith("https://")) return@withContext null // 릴리스는 평문 HTTP 차단
         runCatching {
             val bytes = (URL(url).openConnection() as HttpURLConnection).run {
@@ -100,8 +141,8 @@ private object PhotoCache {
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
             BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
             var sample = 1
-            // 긴 변이 MAX_EDGE_PX 이하가 될 때까지 줄이고 RGB_565로 디코딩(1024px 기준 약 2MB → 캐시에 여러 장 들어감)
-            while (maxOf(bounds.outWidth, bounds.outHeight) / sample > MAX_EDGE_PX) sample *= 2
+            // 긴 변이 maxEdgePx 이하가 될 때까지 줄이고 RGB_565로 디코딩(1024px 기준 약 2MB → 캐시에 여러 장 들어감)
+            while (maxOf(bounds.outWidth, bounds.outHeight) / sample > maxEdgePx) sample *= 2
             BitmapFactory.decodeByteArray(
                 bytes, 0, bytes.size,
                 BitmapFactory.Options().apply {

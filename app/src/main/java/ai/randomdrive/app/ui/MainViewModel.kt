@@ -404,7 +404,7 @@ class MainViewModel(app: Application, private val c: AppContainer) : AndroidView
             polls++
             when (recap.status) {
                 RecapStatus.DONE -> {
-                    c.tripStore.update { it.copy(phase = TripPhase.DONE, shareUrl = recap.shareUrl, summary = recap.summary) }
+                    c.tripStore.update { it.copy(phase = TripPhase.DONE, shareUrl = recap.shareUrl, thumbnailUrl = recap.thumbnailUrl, summary = recap.summary) }
                     return
                 }
                 RecapStatus.FAILED -> {

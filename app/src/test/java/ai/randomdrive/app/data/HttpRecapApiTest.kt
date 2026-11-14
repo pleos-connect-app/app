@@ -17,10 +17,12 @@ class HttpRecapApiTest {
     private var status = 200
     private var body = ""
     private var lastRequest = ""
+    private var lastAppKey: String? = null
 
     @Before fun setUp() {
         server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
         server.createContext("/") { ex ->
+            lastAppKey = ex.requestHeaders.getFirst("X-App-Key")
             lastRequest = ex.requestMethod + " " + ex.requestURI + " " + ex.requestBody.readBytes().toString(Charsets.UTF_8)
             val bytes = body.toByteArray(Charsets.UTF_8)
             ex.sendResponseHeaders(status, bytes.size.toLong().coerceAtLeast(1).takeIf { bytes.isNotEmpty() } ?: -1)
@@ -48,6 +50,29 @@ class HttpRecapApiTest {
         body = """{"tripId":"t_1","status":"RUNNING","shareUrl":null,"videoUrl":null,"summary":null}"""
         assertEquals(RecapStatus.RUNNING, api().getRecap("t_1").status)
         assertTrue(lastRequest.startsWith("GET /api/v1/trips/t_1/recap"))
+    }
+
+    @Test fun `앱 키가 있으면 X-App-Key 헤더로 보낸다`() = runTest {
+        body = """{"tripId":"t_1","status":"RUNNING"}"""
+        HttpRecapApi("http://127.0.0.1:${server.address.port}", apiKey = "k-123").getRecap("t_1")
+        assertEquals("k-123", lastAppKey)
+    }
+
+    @Test fun `앱 키가 비어 있으면 헤더를 보내지 않는다`() = runTest {
+        body = """{"tripId":"t_1","status":"RUNNING"}"""
+        api().getRecap("t_1")
+        assertEquals(null, lastAppKey)
+    }
+
+    @Test fun `401·429는 서버 message를 그대로 전달하고 자동 재시도하지 않는다`() = runTest {
+        status = 429
+        body = """{"code":"RATE_LIMITED","message":"요청이 너무 많아요. 잠시 후 다시 시도해 주세요"}"""
+        val e = expectCode("RATE_LIMITED") { api().getRecap("t_1") }
+        assertEquals("요청이 너무 많아요. 잠시 후 다시 시도해 주세요", e.message)
+        assertTrue(!e.retryable)
+        status = 401
+        body = """{"code":"UNAUTHORIZED","message":"앱 인증에 실패했어요"}"""
+        assertEquals("앱 인증에 실패했어요", expectCode("UNAUTHORIZED") { api().getRecap("t_1") }.message)
     }
 
     @Test fun `200인데 HTML이면 앱이 죽지 않고 BAD_RESPONSE`() = runTest {
