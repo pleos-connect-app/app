@@ -1,4 +1,4 @@
 <resources>
     <!-- Compose가 화면을 모두 그리므로 플랫폼 기본 테마만 사용한다. 색상 토큰은 ui/theme/Tokens.kt -->
-    <style name="Theme.RandomDrive" parent="android:Theme.Material.NoActionBar" />
+    <style name="Theme.Gallaemallae" parent="android:Theme.Material.NoActionBar" />
 </resources>

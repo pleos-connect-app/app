@@ -29,7 +29,7 @@ brew install ffmpeg
 
 ### VWorld 키 (선택)
 
-앱 `local.properties`의 `randomdrive.vworldKey`와 같은 키를 서버에 넣으면 영상 경로 화면에 위성 지도가 깔리고 "용산구 동자동 →"처럼 출발 동네 이름이 들어갑니다. 없으면 단색 배경입니다.
+앱 `local.properties`의 `gallaemallae.vworldKey`와 같은 키를 서버에 넣으면 영상 경로 화면에 위성 지도가 깔리고 "용산구 동자동 →"처럼 출발 동네 이름이 들어갑니다. 없으면 단색 배경입니다.
 
 ```bash
 export VWORLD_API_KEY=<앱과 같은 키>   # 서버를 켜는 터미널에서
@@ -84,7 +84,7 @@ curl -s -X POST http://localhost:8080/api/v1/destinations/random \
 에뮬레이터를 켠 상태에서, **프로젝트 루트**(서버 창이 아닌 다른 터미널)에서:
 
 ```bash
-./gradlew :app:installDebug -Prandomdrive.useFakeServer=false -Prandomdrive.serverBaseUrl=http://10.0.2.2:8080
+./gradlew :app:installDebug -Pgallaemallae.useFakeServer=false -Pgallaemallae.serverBaseUrl=http://10.0.2.2:8080
 ```
 
 ### 에뮬레이터 위치를 한국으로 (중요)
@@ -104,7 +104,7 @@ curl -s -X POST http://localhost:8080/api/v1/destinations/random \
 | 3 | 내비 시작 → 아래 주행 시뮬레이션 → 도착 → 여행 종료 | 리캡 생성(10초 안팎) → QR. 결과 화면 썸네일은 `thumbnailUrl`(16:9, 아직 앱이 안 붙였으면 목적지 사진) |
 | 4 | 결과 화면의 요약 | 앱 로컬 계산과 같은 숫자(거리는 소수 첫째 자리). **정차 1번** 시나리오로 정차 수 확인 |
 | 5 | QR을 휴대폰 카메라로 | 공유 페이지: 장소 사진·이름·주소·날짜·이동 거리·주행 시간·예상 밖 정차, **리캡 영상(10초, 세로) 재생·저장**, 공유 버튼. 출발지·경로 좌표는 안 보여야 하고, 영상의 경로선은 출발지 1.5km 밖부터 시작 |
-| 6 | (선택) demo 빌드 `-Prandomdrive.demoMode=true` 추가 설치 | 항상 남한산성 |
+| 6 | (선택) demo 빌드 `-Pgallaemallae.demoMode=true` 추가 설치 | 항상 남한산성 |
 
 참고: 트립은 DB에 저장되므로 서버를 재시작해도 여행·공유 링크가 남습니다.
 

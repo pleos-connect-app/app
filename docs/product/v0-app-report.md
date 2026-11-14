@@ -1,7 +1,7 @@
 # 차량 앱 v0 구현 보고서
 
 > 작성: 2026-11-10 (밤사이 작업)
-> 함께 볼 문서: [서버 작업 요청서](server-handoff.md) (서버 담당께 전달용) · [v0 시나리오 검증 보고서](scenario-v0-validation.md) · [MVP 명세](randomdrive-mvp-spec.md)
+> 함께 볼 문서: [서버 작업 요청서](server-handoff.md) (서버 담당께 전달용) · [v0 시나리오 검증 보고서](scenario-v0-validation.md) · [MVP 명세](gallaemallae-mvp-spec.md)
 
 ## 한눈에 보기
 
@@ -59,13 +59,13 @@
 
 ```bash
 ./gradlew :app:installDebug                                   # 기본: 앱 내장 가짜 서버
-./gradlew :app:installDebug -Prandomdrive.useFakeServer=false # 실서버(기본 http://10.0.2.2:8080)
-./gradlew :app:installDebug -Prandomdrive.demoMode=true       # 추첨을 남한산성으로 고정(시연용)
+./gradlew :app:installDebug -Pgallaemallae.useFakeServer=false # 실서버(기본 http://10.0.2.2:8080)
+./gradlew :app:installDebug -Pgallaemallae.demoMode=true       # 추첨을 남한산성으로 고정(시연용)
 # release는 가짜 서버를 쓸 수 없고 https 주소가 필수
-./gradlew :app:assembleRelease -Prandomdrive.releaseServerBaseUrl=https://...
+./gradlew :app:assembleRelease -Pgallaemallae.releaseServerBaseUrl=https://...
 ```
 
-패키지명은 임시로 `ai.randomdrive.app`으로 정했습니다(아래 문의 사항 참고).
+패키지명은 `com.gyeongroital.gallaemallae`(앱 이름 갈래말래, 팀 경로이탈)로 확정했습니다(2026-11-14, 이전 임시 이름 `ai.randomdrive.app`).
 
 ### 시연 보조 도구
 
@@ -143,7 +143,7 @@ push는 하지 않았습니다. 확인하신 뒤 `git push` 해 주세요.
 
 ### 결정해 주셔야 할 것
 
-1. **패키지명.** 임시로 `ai.randomdrive.app`입니다. 마켓 등록 후에는 바꿀 수 없으니 확정이 필요합니다.
+1. ~~**패키지명.** 임시로 `ai.randomdrive.app`입니다. 마켓 등록 후에는 바꿀 수 없으니 확정이 필요합니다.~~ → `com.gyeongroital.gallaemallae`로 확정(2026-11-14).
 2. **디자인 값.** 색·글자 크기·버튼 크기는 Pleos Figma(`Pleos_Connect_design_assets_215.fig`) 값이 필요합니다. 지금은 임시 값입니다(`ui/theme/Tokens.kt`). 지금은 시스템 설정을 따라 라이트·다크 테마가 바뀝니다.
 3. **도착·정차 기준값.** 도착은 150m·10초, 정차는 60m·5분으로 잡았습니다. 실제 주행 데이터로 맞춰야 합니다.
 4. **문구 언어.** 화면 문구가 코드에 한국어로 들어가 있습니다. Pleos는 북미 기준 설계를 권장하므로, 다국어가 필요하면 문자열 리소스로 옮겨야 합니다.
@@ -159,7 +159,7 @@ push는 하지 않았습니다. 확인하신 뒤 `git push` 해 주세요.
 8. **문서의 주행 규제 테스트 명령이 에뮬레이터에 없습니다.** `adb shell cmd hmg_car_service --service drivingstate driving_regulation on`을 실행하면 `Can't find service: hmg_car_service`가 나옵니다. 대신 Virtual Console에서 D + ACCEL로 확인했습니다. 실차나 다른 이미지에서만 되는 명령일 수 있으니 운영사무국 문의 거리입니다.
 9. **내비 화면 출발지는 여전히 시흥동입니다.** 앱의 "직선 34km"와 내비의 "56km"가 다르게 나옵니다. 시연 대본에 한 줄 설명이 필요합니다. → 크게 어긋나는 값은 결과 화면에서 숨기도록 바꿈(`a6b75dc`).
 10. **에뮬레이터에 주소 변환(Geocoder)이 없어** 출발지가 "현재 위치"로만 나옵니다. 영상에 "서울역 → …"을 넣으려면 서버가 좌표로 이름을 찾아야 합니다(서버 요청서 3-3).
-11. ~~**공유 QR은 아직 열리지 않습니다.**~~ → 서버 공유 페이지 완성, 실서버 연동으로 확인(2026-11-12). 가짜 서버는 `https://randomdrive.invalid/...`, mock 서버는 `localhost` 주소를 줍니다. 서버의 공유 페이지가 필요합니다(서버 요청서 2-1).
+11. ~~**공유 QR은 아직 열리지 않습니다.**~~ → 서버 공유 페이지 완성, 실서버 연동으로 확인(2026-11-12). 가짜 서버는 `https://gallaemallae.invalid/...`, mock 서버는 `localhost` 주소를 줍니다. 서버의 공유 페이지가 필요합니다(서버 요청서 2-1).
 12. **결과 화면에 지도가 없습니다.** Pleos 단말은 Google 지도를 쓸 수 없습니다(운영사무국 확인). 서버가 정적 지도 이미지를 주면 붙이겠습니다(요청서 3-2).
 13. 후보 15곳의 좌표는 대표 지점 근사치입니다. 실제 후보 DB는 서버 범위입니다.
 

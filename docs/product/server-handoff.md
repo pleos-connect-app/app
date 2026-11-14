@@ -63,7 +63,7 @@
   - `address`는 화면에 그대로 나갑니다. `imageUrl`은 없어도 됩니다(null이면 앱이 이미지 없이 표시).
 - **`demo: true`의 의미를 정해 주세요.** 앱 쪽 제안은 "항상 같은 시연용 목적지(남한산성)"입니다.
   - 앱의 내장 가짜 서버는 이렇게 동작합니다.
-  - 앱은 시연 빌드에서만 `demo: true`를 보냅니다(`-Prandomdrive.demoMode=true`).
+  - 앱은 시연 빌드에서만 `demo: true`를 보냅니다(`-Pgallaemallae.demoMode=true`).
 - 반경 안에 후보가 하나도 없을 때의 응답도 정해 주세요. 제안: `404` + `{"code":"NO_CANDIDATE","message":"..."}`
   - 그 밖의 오류 코드는 "목적지를 불러오지 못했어요"로 안내합니다.
   - 앱은 이미 `NO_CANDIDATE` 코드가 오면 서버가 보낸 `message`를 그대로 보여 주도록 되어 있습니다.
@@ -76,7 +76,7 @@
   - 반경 60m 안에 **5분 이상** 머문 구간
   - 그 앞뒤에 주행 구간이 있어야 함(출발 전 대기, 도착 후 체류는 제외)
   - 목적지나 계획 경유지(`WAYPOINT_ADDED`/`WAYPOINT_ARRIVED` 이벤트 좌표)에서 300m 이내면 제외
-  - 앱 코드: `app/src/main/java/ai/randomdrive/app/domain/StopDetector.kt`
+  - 앱 코드: `app/src/main/java/com/gyeongroital/gallaemallae/domain/StopDetector.kt`
   - 기준값은 실제 주행 로그로 다시 맞춰야 합니다. 서버가 더 나은 방법을 쓰면 앱은 서버 값을 우선 표시합니다.
 
 ---
@@ -98,7 +98,7 @@
 
 ## 4. 연동 확인 결과 (mock 서버)
 
-`-Prandomdrive.useFakeServer=false`로 앱을 빌드해서 에뮬레이터에서 `http://10.0.2.2:8080`에 붙여 확인했습니다. 결과는 `docs/product/v0-app-report.md`의 "서버 연동" 절에 적었습니다.
+`-Pgallaemallae.useFakeServer=false`로 앱을 빌드해서 에뮬레이터에서 `http://10.0.2.2:8080`에 붙여 확인했습니다. 결과는 `docs/product/v0-app-report.md`의 "서버 연동" 절에 적었습니다.
 
 확인한 것:
 - 3개 API 모두 계약대로 주고받음(`t_505843` 발급 → finish 202 → recap RUNNING 2회 → DONE)
@@ -177,7 +177,25 @@
 cd server && ./gradlew bootRun
 
 # 앱 (프로젝트 루트에서, 에뮬레이터 실행 중)
-./gradlew :app:installDebug -Prandomdrive.useFakeServer=false -Prandomdrive.serverBaseUrl=http://10.0.2.2:8080
+./gradlew :app:installDebug -Pgallaemallae.useFakeServer=false -Pgallaemallae.serverBaseUrl=http://10.0.2.2:8080
 ```
 
-`-Prandomdrive.useFakeServer` 없이 빌드하면 앱 안에 들어 있는 가짜 서버를 씁니다. 서버 없이 화면 개발할 때 쓰는 용도입니다.
+`-Pgallaemallae.useFakeServer` 없이 빌드하면 앱 안에 들어 있는 가짜 서버를 씁니다. 서버 없이 화면 개발할 때 쓰는 용도입니다.
+
+## 8. 앱 이름 변경: 갈래말래 (2026-11-14)
+
+앱 이름을 **갈래말래**(영문 Gallaemallae), 팀 이름을 **경로이탈**로 정했습니다. 앱은 이미 바꿨습니다.
+
+- 앱 패키지: `ai.randomdrive.app` → `com.gyeongroital.gallaemallae`
+- 앱 빌드 속성: `-Prandomdrive.*` → `-Pgallaemallae.*` (`useFakeServer`, `serverBaseUrl`, `demoMode`, `releaseServerBaseUrl`, `vworldKey`, `apiKey`). 앱 `local.properties`의 키 이름도 `gallaemallae.vworldKey`, `gallaemallae.apiKey`로 바꿔 주세요(옛 이름이 남아 있으면 빌드할 때 경고가 나옵니다).
+- API 계약은 바뀐 것이 없습니다.
+
+서버에 부탁드릴 것 (사용자에게 보이는 글자부터):
+
+| 우선 | 위치 | 지금 | 바꿀 것 |
+|---|---|---|---|
+| 1 | `recap/RecapPainter.java` 표지·썸네일 | `RANDOM DRIVE · 날짜` | `갈래말래 · 날짜` 등 |
+| 1 | `recap/RecapPainter.java` 요약 장면 아래 | `RandomDrive` | `갈래말래` |
+| 1 | `templates/share.html`, `share-unavailable.html` 하단 | `RandomDrive` | `갈래말래` (페이지 제목·og 태그에 이름이 있으면 함께) |
+| 2 | `tourapi/TourApiClient.java` | `MobileApp=RandomDrive` | `Gallaemallae` (다음 후보 가져오기 때) |
+| 3 | Java 패키지 `com.randomdrive.server`, 배포(`randomdrive.service`, `/etc/randomdrive.env`, `/var/lib/randomdrive`, DB 파일 `randomdrive.mv.db`) | | 선택. 바꾸면 테스트 서버의 서비스·DB 경로를 옮겨야 해서 서버 담당 판단에 맡깁니다 |

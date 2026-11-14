@@ -108,7 +108,7 @@
 ### 서버를 켤 때 필요한 것
 
 - **ffmpeg**(`brew install ffmpeg`). 없으면 영상 없이 썸네일만 나옵니다.
-- (선택) **VWorld 키** `VWORLD_API_KEY` — 앱의 `randomdrive.vworldKey`와 같은 키. 있으면 경로 화면에 위성 지도와 출발 동네 이름이 들어갑니다. 없으면 단색 배경입니다.
+- (선택) **VWorld 키** `VWORLD_API_KEY` — 앱의 `gallaemallae.vworldKey`와 같은 키. 있으면 경로 화면에 위성 지도와 출발 동네 이름이 들어갑니다. 없으면 단색 배경입니다.
 - 자세한 방법은 [server-run-guide-macos.md](server-run-guide-macos.md) 0장.
 
 ### 부탁드릴 것
@@ -129,7 +129,7 @@
 - 주소: **`https://13-125-180-227.sslip.io`** (HTTPS, AWS Lightsail 서울)
 - 앱 설치:
   ```bash
-  ./gradlew :app:installDebug -Prandomdrive.useFakeServer=false -Prandomdrive.serverBaseUrl=https://13-125-180-227.sslip.io
+  ./gradlew :app:installDebug -Pgallaemallae.useFakeServer=false -Pgallaemallae.serverBaseUrl=https://13-125-180-227.sslip.io
   ```
 - QR은 휴대폰(LTE·와이파이 상관없음)에서 바로 열립니다.
 - 리캡 영상 생성에 약 15~20초 걸립니다(앱은 3분까지 기다림).
@@ -166,7 +166,7 @@
 
 ### 앱에서 할 일
 
-- 키는 따로 전달합니다(git에 넣지 말고 `local.properties`에 `randomdrive.apiKey=...`).
+- 키는 따로 전달합니다(git에 넣지 말고 `local.properties`에 `gallaemallae.apiKey=...`).
 - `app/build.gradle.kts`: `serverBaseUrl`과 같은 방식으로 `buildConfigField("String", "SERVER_API_KEY", ...)`
 - `HttpRecapApi`의 요청에 `setRequestProperty("X-App-Key", BuildConfig.SERVER_API_KEY)` 한 줄
 - `401`·`429`는 응답의 `message`를 그대로 보여 주면 됩니다(한국어 문장). `429`는 "다시 시도"로 충분합니다.

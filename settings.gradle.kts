@@ -26,5 +26,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "random_drive_n_recap"
+rootProject.name = "gallaemallae"
 include(":app")

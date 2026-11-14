@@ -16,7 +16,7 @@
     <uses-feature android:name="android.hardware.type.automotive" android:required="true" />
 
     <application
-        android:name=".RandomDriveApp"
+        android:name=".GallaemallaeApp"
         android:allowBackup="false"
         android:enableOnBackInvokedCallback="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -26,7 +26,7 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.RandomDrive">
+        android:theme="@style/Theme.Gallaemallae">
 
         <!-- DO(주행 중 사용) 미선언: 모든 조작은 정차(P) 중에만. 주행 중엔 시스템 차단 화면이 대신 표시된다. -->
         <activity

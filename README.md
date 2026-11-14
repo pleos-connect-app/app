@@ -1,4 +1,4 @@
-# 랜덤드라이브 (RandomDrive)
+# 갈래말래 (Gallaemallae)
 
 반경(50 / 100 / 150km)만 고르면 오늘의 목적지를 랜덤으로 뽑아 내비게이션으로 안내하고,
 여행이 끝나면 이동 기록으로 리캡을 만들어 QR로 휴대폰에 공유하는 Pleos Connect 앱입니다.
@@ -14,7 +14,7 @@
 | RAM | 4096MB (AVD 설정) |
 | 실행 조건 | AVD **cold boot**(quick boot면 차량 기능 비활성) |
 
-앱 정보: 패키지 `ai.randomdrive.app`, minSdk 28, target/compileSdk 37, 버전 0.1.0.
+앱 정보: 패키지 `com.gyeongroital.gallaemallae`, minSdk 28, target/compileSdk 37, 버전 0.1.0.
 
 ## 빌드와 설치
 
@@ -25,16 +25,16 @@ JDK 17 이상과 Android SDK가 필요합니다. 에뮬레이터를 켠 상태�
 ./gradlew :app:installDebug
 
 # 실제 서버에 연결해 설치 (서버는 server/ 에서 따로 실행, 아래 참고)
-./gradlew :app:installDebug -Prandomdrive.useFakeServer=false -Prandomdrive.serverBaseUrl=http://10.0.2.2:8080
+./gradlew :app:installDebug -Pgallaemallae.useFakeServer=false -Pgallaemallae.serverBaseUrl=http://10.0.2.2:8080
 
 # 시연용: 반경과 관계없이 남한산성 고정
-./gradlew :app:installDebug -Prandomdrive.demoMode=true
+./gradlew :app:installDebug -Pgallaemallae.demoMode=true
 ```
 
-설치 후 에뮬레이터 앱 목록에서 **랜덤드라이브**를 누르거나
-`adb shell am start -n ai.randomdrive.app/.MainActivity`로 실행합니다.
+설치 후 에뮬레이터 앱 목록에서 **갈래말래**를 누르거나
+`adb shell am start -n com.gyeongroital.gallaemallae/.MainActivity`로 실행합니다.
 
-릴리스 빌드는 `-Prandomdrive.releaseServerBaseUrl=https://...`가 없으면 빌드가 멈춥니다(평문 HTTP 금지).
+릴리스 빌드는 `-Pgallaemallae.releaseServerBaseUrl=https://...`가 없으면 빌드가 멈춥니다(평문 HTTP 금지).
 
 ### 위성 지도·출발지 이름(선택)
 
@@ -45,7 +45,7 @@ JDK 17 이상과 Android SDK가 필요합니다. 에뮬레이터를 켠 상태�
 - 추첨: 위성 지도 위에서 핀이 돌아다니다 목적지에 착지하고, 목적지 주변으로 확대해 잠깐 보여 줌
 
 ```properties
-randomdrive.vworldKey=발급받은_인증키
+gallaemallae.vworldKey=발급받은_인증키
 ```
 
 키가 없거나 지도를 받지 못하면 어두운 배경에 반경 원만 그리고, 출발 위치는 "현재 위치"로 표시합니다(기능은 동일).
@@ -104,7 +104,7 @@ DO(주행 중 사용)를 선언하지 않았습니다. 모든 조작은 정차(P
 
 ## 문서
 
-- 기능 명세(MVP): [docs/product/randomdrive-mvp-spec.md](docs/product/randomdrive-mvp-spec.md)
+- 기능 명세(MVP): [docs/product/gallaemallae-mvp-spec.md](docs/product/gallaemallae-mvp-spec.md)
 - 구현 현황·검증 결과: [docs/product/v0-app-report.md](docs/product/v0-app-report.md)
 - 시나리오 검증·운영사무국 답변: [docs/product/scenario-v0-validation.md](docs/product/scenario-v0-validation.md)
 - Pleos Connect 가이드 요약: [docs/pleos/index.md](docs/pleos/index.md)

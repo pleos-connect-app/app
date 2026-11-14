@@ -1,7 +1,7 @@
 # 초기 개발 버전(v0) 시나리오 검증 보고서
 
 - 대상 시나리오: **서울역 출발 랜덤 드라이브 리캡** (데모용 초기 버전)
-- 기준 문서: [randomdrive-mvp-spec.md](randomdrive-mvp-spec.md), `docs/pleos/wiki/*`
+- 기준 문서: [gallaemallae-mvp-spec.md](gallaemallae-mvp-spec.md), `docs/pleos/wiki/*`
 - 검증일: 2026-11-07
 - 검증 환경: Pleos Connect Emulator **v2.1.0** (Android 14 / API 34, 2560×1440), NaviHelper SDK **3.0.5**, FusedLocation SDK **1.1.3**, AGP 9.5.1 / compileSdk 37 / minSdk 28
 - 검증 방법: 문서 검토 + SDK AAR 시그니처 확인(javap) + **에뮬레이터에 검증용 앱(probe)을 설치해 실제 API 호출·콜백 수신 확인**
