@@ -66,6 +66,36 @@ class TripStoreTest {
         assertThat(loaded.getDestination()).isEqualTo(DEST);
         assertThat(loaded.getEndedAt()).isEqualTo(9_000L);
         assertThat(loaded.getFinishData()).as("DONE은 주행 데이터를 읽지 않음").isNull();
+        assertThat(finishes.existsById("t_db0001")).as("DONE이 되면 주행 경로는 DB에서 지운다").isFalse();
+    }
+
+    @Test
+    void 실패한_트립의_주행_경로도_지우고_시작_때_남은_경로를_정리한다() {
+        Trip failed = new Trip("t_db0004", DEST);
+        store.insert(failed);
+        failed.finish(data());
+        store.saveFinish(failed, data());
+        failed.startGenerating(1);
+        failed.fail(1);
+        store.save(failed);
+        assertThat(finishes.existsById("t_db0004")).isFalse();
+
+        // 이 규칙 이전에 DONE으로 저장되며 남아 있던 경로 + 아직 생성을 기다리는 트립의 경로
+        Trip old = new Trip("t_db0005", DEST);
+        store.insert(old);
+        trips.findById("t_db0005").ifPresent(e -> {
+            e.setState(TripStatus.DONE, 1, true, 9_000L);
+            trips.save(e);
+        });
+        finishes.save(new TripFinishEntity("t_db0005", "{}"));
+        Trip waiting = new Trip("t_db0006", DEST);
+        store.insert(waiting);
+        waiting.finish(data());
+        store.saveFinish(waiting, data());
+
+        assertThat(store.deleteRouteDataOfCompletedTrips()).isGreaterThanOrEqualTo(1);
+        assertThat(finishes.existsById("t_db0005")).isFalse();
+        assertThat(finishes.existsById("t_db0006")).as("생성 대기 중인 경로는 남김").isTrue();
     }
 
     @Test

@@ -39,8 +39,10 @@ public final class CandidateImporter {
     static final double MAX_LNG = 132.0;
 
     /** 시연용 고정 장소. 앱 assets/candidates.json의 demo-namhansanseong과 같은 값. */
+    // 사진은 TourAPI "남한산성도립공원 [유네스코 세계유산]"(contentId 125449)의 대표 이미지(공공누리 3유형).
     public static final Candidate DEMO = new Candidate(CandidateRepository.DEMO_PLACE_ID, "남한산성",
-            37.4786, 127.1817, "경기도 광주시 남한산성면", null, null, true);
+            37.4786, 127.1817, "경기도 광주시 남한산성면",
+            "https://tong.visitkorea.or.kr/cms/resource/79/4104179_image2_1.jpg", "Type3", true);
 
     private CandidateImporter() {
     }

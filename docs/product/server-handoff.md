@@ -199,3 +199,18 @@ cd server && ./gradlew bootRun
 | 1 | `templates/share.html`, `share-unavailable.html` 하단 | `RandomDrive` | `갈래말래` (페이지 제목·og 태그에 이름이 있으면 함께) |
 | 2 | `tourapi/TourApiClient.java` | `MobileApp=RandomDrive` | `Gallaemallae` (다음 후보 가져오기 때) |
 | 3 | Java 패키지 `com.randomdrive.server`, 배포(`randomdrive.service`, `/etc/randomdrive.env`, `/var/lib/randomdrive`, DB 파일 `randomdrive.mv.db`) | | 선택. 바꾸면 테스트 서버의 서비스·DB 경로를 옮겨야 해서 서버 담당 판단에 맡깁니다 |
+
+## 9. 앱 담당이 서버에 반영한 것 (2026-11-14, 공모전 제출 준비) — **테스트 서버 재배포 필요**
+
+앱 이름 변경(8장)의 서버 쪽 1·2번과 심사 대비 항목을 앱 담당이 직접 반영했습니다. 테스트 서버에 다시 배포해 주세요(`deploy/deploy.sh`). 배포 전까지 release APK의 동의 화면 QR(`/privacy.html`)이 404입니다.
+
+| 변경 | 내용 |
+|---|---|
+| 개인정보 | 트립이 DONE·FAILED가 되면 `trip_finish`(주행 경로)를 바로 삭제, 서버 시작 때 남은 것도 정리(`TripStore`, 테스트 추가) |
+| 정책 페이지 | `static/privacy.html` — 개인정보처리방침 + 위치정보 이용약관. 앱 동의 화면 QR이 연다. **연락처 칸 `[제출 전 입력]`을 채워야 함** |
+| 이름 | 영상·썸네일·공유 페이지의 "RANDOM DRIVE"/"RandomDrive"/"랜덤 드라이브" → "갈래말래", TourAPI `MobileApp=Gallaemallae` |
+| 표기 | 정차 횟수 "번" → "회"(앱과 같게) |
+| 썸네일 | 차량 결과 화면에서 읽히도록 작은 글자 키움(날짜 30, 출발지 34, 항목 이름 30, 값 48, 사진 출처 26) |
+| 시연 | demo(남한산성)에 TourAPI "남한산성도립공원" 사진(공공누리 3유형) 추가 — `CandidateImporter.DEMO`와 `candidates.json`의 demo 줄 |
+
+서버 테스트 90개 통과, 로컬에서 영상·썸네일을 실제로 만들어 프레임을 확인했습니다.

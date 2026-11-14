@@ -68,6 +68,10 @@ public class TripService {
     /** 서버가 켜질 때: 재시작 전에 생성을 끝내지 못한 리캡을 다시 만든다. */
     @EventListener(ApplicationReadyEvent.class)
     public void resumeUnfinishedRecaps() {
+        int purged = store.deleteRouteDataOfCompletedTrips();
+        if (purged > 0) {
+            log.info("Deleted route data of {} completed trip(s)", purged);
+        }
         List<Trip> pending = store.findAwaitingGeneration();
         if (!pending.isEmpty()) {
             log.info("Resuming {} unfinished recap(s)", pending.size());

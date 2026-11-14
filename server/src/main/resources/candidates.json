@@ -2,7 +2,7 @@
   "_comment": "자동 생성 파일 — 직접 고치지 말고 server에서 ./gradlew importCandidates로 다시 만든다. demo는 demo=true 요청이 항상 주는 시연용 장소, candidates는 랜덤 추첨 후보(F-01).",
   "source": "한국관광공사 TourAPI (KorService2 areaBasedList2, contentTypeId=12)",
   "generatedAt": "2026-11-11",
-  "demo": {"placeId":"demo-namhansanseong","name":"남한산성","lat":37.4786,"lng":127.1817,"address":"경기도 광주시 남한산성면"},
+  "demo": {"placeId":"demo-namhansanseong","name":"남한산성","lat":37.4786,"lng":127.1817,"address":"경기도 광주시 남한산성면","imageUrl":"https://tong.visitkorea.or.kr/cms/resource/79/4104179_image2_1.jpg","imageLicense":"Type3"},
   "candidates": [
     {"placeId":"1005548","name":"충주 최응성 고가","lat":36.8955407481,"lng":127.9804100081,"address":"충청북도 충주시 살미면 중원대로 2220","imageUrl":"https://tong.visitkorea.or.kr/cms/resource/04/3505004_image2_1.jpg","imageLicense":"Type3"},
     {"placeId":"1008953","name":"여주 서화마을","lat":37.3995165448,"lng":127.6975230337,"address":"경기도 여주시 북내면 서원2길 40","imageUrl":"https://tong.visitkorea.or.kr/cms/resource/03/3382203_image2_1.jpg","imageLicense":"Type3"},

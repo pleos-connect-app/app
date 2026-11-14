@@ -300,7 +300,7 @@ public final class RecapPainter {
         double eased = easeOut(countUp);
         y = drawStat(g, "이동 거리", String.format(java.util.Locale.ROOT, "%.1fkm", parseKm(scene.distanceText()) * eased), x, y, w) + 40;
         y = drawStat(g, "주행 시간", scene.durationText(), x, y, w) + 40;
-        drawStat(g, "예상 밖 정차", Math.round(scene.stopCount() * eased) + "번", x, y, w);
+        drawStat(g, "예상 밖 정차", Math.round(scene.stopCount() * eased) + "회", x, y, w);
 
         drawText(g, "갈래말래", fonts.bold(30), ROUTE, x, VIDEO_H - 130, w, 1, 30);
         if (mapTiles) {
@@ -341,29 +341,29 @@ public final class RecapPainter {
 
         int x = 56, w = px - 100;
         int y = 80;
-        y = drawText(g, "갈래말래 · " + scene.dateText(), fonts.bold(24), MUTED, x, y, w, 1, 18) + 20;
+        y = drawText(g, "갈래말래 · " + scene.dateText(), fonts.bold(30), MUTED, x, y, w, 1, 24) + 20;
         y = drawText(g, scene.placeName(), fonts.bold(60), TEXT, x, y, w, 3, 36) + 18;
         if (scene.originName() != null) {
-            drawText(g, scene.originName() + " →", fonts.regular(28), MUTED, x, y, w, 1, 20);
+            drawText(g, scene.originName() + " →", fonts.regular(34), MUTED, x, y, w, 1, 26);
         }
 
-        int sy = THUMB_H - 200;
+        int sy = THUMB_H - 220;
         // "2시간 30분"이 가장 길어 시간 칸을 넓게
         int c1 = (int) (w * 0.33), c2 = (int) (w * 0.45);
         drawThumbStat(g, "거리", scene.distanceText(), x, sy, c1 - 12);
         drawThumbStat(g, "시간", scene.durationText(), x + c1, sy, c2 - 12);
-        drawThumbStat(g, "정차", scene.stopCount() + "번", x + c1 + c2, sy, w - c1 - c2);
+        drawThumbStat(g, "정차", scene.stopCount() + "회", x + c1 + c2, sy, w - c1 - c2);
 
         if (photo) {
-            drawCredit(g, PHOTO_CREDIT, THUMB_W - 20, THUMB_H - 16, scene.photoNoDerivatives() ? MUTED : TEXT);
+            drawCredit(g, PHOTO_CREDIT, THUMB_W - 20, THUMB_H - 16, scene.photoNoDerivatives() ? MUTED : TEXT, 26);
         }
         g.dispose();
         return img;
     }
 
     private void drawThumbStat(Graphics2D g, String label, String value, int x, int y, int w) {
-        y = drawText(g, label, fonts.regular(24), MUTED, x, y, w, 1, 18) + 6;
-        drawText(g, value, fonts.bold(40), TEXT, x, y, w, 1, 22);
+        y = drawText(g, label, fonts.regular(30), MUTED, x, y, w, 1, 24) + 6;
+        drawText(g, value, fonts.bold(48), TEXT, x, y, w, 1, 28);
     }
 
     // ------------------------------------------------------------------ 그리기 도구
@@ -414,7 +414,12 @@ public final class RecapPainter {
     }
 
     private void drawCredit(Graphics2D g, String text, int right, int baseline, Color color) {
-        g.setFont(fonts.regular(18));
+        drawCredit(g, text, right, baseline, color, 18);
+    }
+
+    /** [size]: 썸네일은 차량 화면에 줄여 보이므로 영상(18)보다 크게 쓴다. */
+    private void drawCredit(Graphics2D g, String text, int right, int baseline, Color color, int size) {
+        g.setFont(fonts.regular(size));
         FontMetrics fm = g.getFontMetrics();
         int w = fm.stringWidth(text);
         g.setColor(new Color(0, 0, 0, 120));

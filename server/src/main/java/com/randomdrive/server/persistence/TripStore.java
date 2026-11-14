@@ -78,8 +78,20 @@ public class TripStore {
     @Transactional
     public void save(Trip trip) {
         TripEntity e = trips.findById(trip.getId()).orElseGet(() -> new TripEntity(trip.getId(), clock.instant()));
-        apply(e, trip.snapshot());
+        Trip.Snapshot s = trip.snapshot();
+        apply(e, s);
         trips.save(e);
+        // 주행 경로(위치 로그)는 리캡을 만드는 데만 쓰고 바로 지운다(개인정보 최소 보관).
+        // DONE은 다시 읽지 않고, FAILED는 앱이 "다시 시도"로 데이터를 새로 보낸다.
+        if (!UNFINISHED.contains(s.status()) && finishes.existsById(trip.getId())) {
+            finishes.deleteById(trip.getId());
+        }
+    }
+
+    /** 생성이 끝난(DONE·FAILED) 트립에 남은 주행 경로를 지운다. 서버 시작 때 한 번(이 규칙 이전에 쌓인 데이터 정리). */
+    @Transactional
+    public int deleteRouteDataOfCompletedTrips() {
+        return finishes.deleteForTripsNotIn(UNFINISHED);
     }
 
     /** finish로 새 주행 데이터를 받았을 때: 주행 데이터와 상태를 함께 저장. */

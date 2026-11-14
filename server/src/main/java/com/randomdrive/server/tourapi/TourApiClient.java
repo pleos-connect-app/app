@@ -60,7 +60,7 @@ public class TourApiClient {
         return UriComponentsBuilder.fromUriString(properties.baseUrl() + "/areaBasedList2")
                 .queryParam("serviceKey", "{serviceKey}")
                 .queryParam("MobileOS", "ETC")
-                .queryParam("MobileApp", "RandomDrive")
+                .queryParam("MobileApp", "Gallaemallae")
                 .queryParam("_type", "json")
                 .queryParam("arrange", "A")
                 .queryParam("contentTypeId", contentTypeId)
