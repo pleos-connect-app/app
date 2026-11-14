@@ -150,7 +150,7 @@ class TripRecordingService : LifecycleService() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_stat_trip)
             .setContentTitle(getString(R.string.recording_notification_title))
             .setContentText(getString(R.string.recording_notification_text, destinationName))
             .setOngoing(true)
