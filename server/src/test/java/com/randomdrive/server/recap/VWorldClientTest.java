@@ -28,6 +28,16 @@ class VWorldClientTest {
     }
 
     @Test
+    void 검색_결과의_첫_좌표_x는_경도_y는_위도() throws Exception {
+        String body = """
+                {"response":{"status":"OK","result":{"items":[{"title":"장안문","point":{"x":"127.0124","y":"37.2896"}}]}}}
+                """;
+        assertThat(client.parseSearch(body)).containsExactly(37.2896, 127.0124);
+        assertThat(client.parseSearch("{\"response\":{\"status\":\"NOT_FOUND\"}}")).isNull();
+        assertThat(client.search("장안문")).as("키가 없으면 호출하지 않음").isNull();
+    }
+
+    @Test
     void 결과가_없으면_null() throws Exception {
         assertThat(client.parseAreaName("{\"response\":{\"status\":\"NOT_FOUND\"}}")).isNull();
     }

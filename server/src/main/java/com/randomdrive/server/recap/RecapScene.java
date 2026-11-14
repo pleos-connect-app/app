@@ -18,6 +18,7 @@ import java.util.List;
  * @param route              보여도 되는 경로 조각들. 각 점은 {lat, lng}
  * @param stops              보여도 되는 정차 위치들 {lat, lng}
  * @param destination        목적지 {lat, lng}
+ * @param waypoints          보여도 되는 경유지(좌표를 아는 것만, 이름 중복 없이 추가된 순서)
  */
 public record RecapScene(
         String placeName,
@@ -31,8 +32,16 @@ public record RecapScene(
         boolean photoNoDerivatives,
         List<List<double[]>> route,
         List<double[]> stops,
-        double[] destination
+        double[] destination,
+        List<Waypoint> waypoints
 ) {
+    /** 경유지. 내비가 준 이름(장소명 또는 주소)과 좌표. */
+    public record Waypoint(String name, double lat, double lng) {
+        public double[] latLng() {
+            return new double[]{lat, lng};
+        }
+    }
+
     /** "용산구 동자동 → 남한산성", 출발지를 모르면 목적지 이름만. */
     public String journeyText() {
         return originName == null ? placeName : originName + " → " + placeName;

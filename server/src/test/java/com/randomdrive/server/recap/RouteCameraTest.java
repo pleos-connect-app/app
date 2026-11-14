@@ -20,7 +20,7 @@ class RouteCameraTest {
             seg.add(new double[]{37.4, 127.0 + i * 0.0034});
         }
         return new RecapScene("목적지", null, "", "30.0km", "1시간", 0, true, null, false,
-                List.of(seg), List.of(), seg.get(seg.size() - 1));
+                List.of(seg), List.of(), seg.get(seg.size() - 1), List.of());
     }
 
     @Test

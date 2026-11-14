@@ -1,9 +1,11 @@
 package com.randomdrive.server.recap;
 
 import com.randomdrive.server.dto.DestinationDto;
+import com.randomdrive.server.dto.EventDto;
 import com.randomdrive.server.dto.EventType;
 import com.randomdrive.server.dto.FinishTripRequest;
 import com.randomdrive.server.dto.PointDto;
+import com.randomdrive.server.service.Geo;
 import com.randomdrive.server.dto.RecapSummaryDto;
 import com.randomdrive.server.dto.SharePageView;
 import com.randomdrive.server.service.ShareProperties;
@@ -180,7 +182,36 @@ public class RecapMediaService {
                 "Type3".equals(imageLicense),
                 route,
                 visibleStops,
-                new double[]{destination.lat(), destination.lng()});
+                new double[]{destination.lat(), destination.lng()},
+                waypoints(data.events(), origin));
+    }
+
+    /**
+     * 경유지 이벤트(WAYPOINT_ADDED·ARRIVED)에서 영상에 그릴 경유지를 고른다.
+     * 좌표를 모르는 것(앱이 0,0으로 보냄 — 에뮬레이터 내비는 경유지 좌표를 주지 않음)과 한국 밖 좌표는 빼고,
+     * 같은 이름이나 100m 안의 같은 곳은 한 번만, 출발지 가림 영역(1.5km) 안은 그리지 않는다.
+     */
+    static List<RecapScene.Waypoint> waypoints(List<EventDto> events, PointDto origin) {
+        List<RecapScene.Waypoint> out = new ArrayList<>();
+        for (EventDto e : events) {
+            if (e.type() != EventType.WAYPOINT_ADDED && e.type() != EventType.WAYPOINT_ARRIVED) {
+                continue;
+            }
+            if (!inKorea(e.lat(), e.lng()) || RouteMask.isHidden(origin, e.lat(), e.lng())) {
+                continue;
+            }
+            String name = e.name() == null || e.name().isBlank() ? "경유지" : e.name().trim();
+            boolean dup = out.stream().anyMatch(w -> w.name().equals(name)
+                    || Geo.distanceKm(w.lat(), w.lng(), e.lat(), e.lng()) < 0.1);
+            if (!dup) {
+                out.add(new RecapScene.Waypoint(name, e.lat(), e.lng()));
+            }
+        }
+        return out;
+    }
+
+    private static boolean inKorea(double lat, double lng) {
+        return lat >= 33 && lat <= 39 && lng >= 124 && lng <= 132;
     }
 
     /** 지도에 꼭 들어가야 하는 점: 보이는 경로, 정차, 목적지. */
@@ -188,6 +219,7 @@ public class RecapMediaService {
         List<double[]> pts = new ArrayList<>();
         scene.route().forEach(pts::addAll);
         pts.addAll(scene.stops());
+        scene.waypoints().forEach(w -> pts.add(w.latLng()));
         pts.add(scene.destination());
         return pts;
     }

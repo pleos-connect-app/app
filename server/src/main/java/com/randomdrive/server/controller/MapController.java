@@ -46,6 +46,16 @@ public class MapController {
         return a == null ? new Area(null, null) : new Area(a.full(), a.shortName());
     }
 
+    /** GET /api/v1/geo/search?query= → {"lat", "lng"} (못 찾으면 둘 다 null). 경유지 좌표 보완용. */
+    @GetMapping("/geo/search")
+    public Coord search(@RequestParam String query) {
+        double[] c = maps.search(query);
+        return c == null ? new Coord(null, null) : new Coord(c[0], c[1]);
+    }
+
     public record Area(String full, @JsonProperty("short") String shortName) {
+    }
+
+    public record Coord(Double lat, Double lng) {
     }
 }

@@ -81,6 +81,21 @@ class MapControllerTest {
     }
 
     @Test
+    void 장소_이름이나_주소로_좌표를_찾는다() throws Exception {
+        when(vworld.search("서울특별시 양천구 목동중앙남로 11-15 (목동)")).thenReturn(new double[]{37.5262, 126.8752});
+        mockMvc.perform(get("/api/v1/geo/search").param("query", "서울특별시 양천구 목동중앙남로 11-15 (목동)"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.lat").value(37.5262))
+                .andExpect(jsonPath("$.lng").value(126.8752));
+        when(vworld.search("없는 곳")).thenReturn(null);
+        mockMvc.perform(get("/api/v1/geo/search").param("query", "없는 곳"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.lat").doesNotExist());
+        mockMvc.perform(get("/api/v1/geo/search").param("query", " ")).andExpect(status().isBadRequest());
+        mockMvc.perform(get("/api/v1/geo/search")).andExpect(status().isBadRequest());
+    }
+
+    @Test
     void 좌표가_없거나_잘못되면_400() throws Exception {
         mockMvc.perform(get("/api/v1/geo/area").param("lat", "37.5")).andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));

@@ -58,6 +58,7 @@ Pleos Connect 앱(`../`)이 호출하는 API 서버. 앱 쪽 `CLAUDE.md`의 Pleo
 
 요청: `{"startedAt": long, "endedAt": long, "points": [{"lat", "lng", "ts"}], "events": [{"type", "ts", "lat", "lng", "name"(선택)}]}`
 - `points` 2~10,000개. `events.type`: `DESTINATION_SET`, `WAYPOINT_ADDED`, `WAYPOINT_ARRIVED`, `DESTINATION_ARRIVED`.
+- 경유지 이벤트의 좌표를 모르면 앱이 `lat: 0, lng: 0`을 보낸다(경유지 그리기·정차 제외 기준에서 뺀다).
 - 없는 `tripId` → 404 `TRIP_NOT_FOUND`.
 
 응답: `{"tripId": "...", "status": "PENDING"}`
@@ -97,6 +98,7 @@ Pleos Connect 앱(`../`)이 호출하는 API 서버. 앱 쪽 `CLAUDE.md`의 Pleo
 VWorld 인증키는 APK에서 꺼낼 수 있어 앱에 넣지 않는다. 앱은 위성 지도와 지역 이름을 이 서버를 거쳐 받는다(`MapController`·`MapProxyService`).
 - `GET /api/v1/map/satellite/{z}/{x}/{y}.jpeg` → 200 `image/jpeg`(VWorld WMTS 위성 256px, `Cache-Control: private, max-age=604800`). z는 6~18, x·y는 0~2^z-1(밖이면 400). 키가 없거나 받지 못하면 503 `MAP_UNAVAILABLE`(앱은 지도 없는 배경). 최근 500장을 메모리에 둔다.
 - `GET /api/v1/geo/area?lat=&lng=` → 200 `{"full": "서울특별시 용산구 동자동", "short": "용산구 동자동"}`. 못 찾거나 키가 없으면 둘 다 `null`. 좌표 범위 밖·누락은 400. 좌표는 저장하지 않는다.
+- `GET /api/v1/geo/search?query=` → 200 `{"lat", "lng"}`(VWorld 검색: 장소 → 도로명 → 지번 순, 첫 결과). 못 찾으면 둘 다 `null`, query 비었거나 200자 초과면 400. 내비가 경유지 좌표를 주지 않을 때(에뮬레이터는 0,0) 앱이 경유지 이름·주소로 묻는다.
 
 ### 7. `GET /privacy.html` (개인정보처리방침·위치정보 이용약관)
 
@@ -107,6 +109,7 @@ VWorld 인증키는 APK에서 꺼낼 수 있어 앱에 넣지 않는다. 앱은 
 
 - 출발 좌표(`points[0]`)에서 직선 1.5km 안의 경로·정차는 그리지 않는다(`recap/RouteMask`, 다시 돌아온 구간 포함). 출발지는 VWorld 역지오코딩한 "구 동" 이름으로만 쓴다(handoff 3-3).
 - 도착 문구는 `DESTINATION_ARRIVED` 이벤트 유무로 정한다(handoff 3-4).
+- 경유지: `WAYPOINT_ADDED`·`WAYPOINT_ARRIVED` 이벤트 중 좌표를 아는 것(0,0은 "모름", 한국 밖 제외)만 이름 중복·100m 안 중복 없이 그린다. 경로선이 그 지점까지 오면 파란 핀과 이름표, 요약 장면에 "경유지" 줄. 출발지 가림 영역 안이면 그리지 않는다(`RecapMediaService.waypoints`).
 - 앱 이름은 "갈래말래"(표지·썸네일 머리글, 요약 장면 아래, 공유 페이지 제목·하단). 정차 횟수 단위는 앱과 같은 "회".
 - TourAPI 공공누리 3유형 사진은 자르거나 위에 글자를 얹지 않는다. 사진을 쓰면 "사진: 한국관광공사", 지도 타일을 쓰면 "지도: 브이월드(국토교통부)"를 표시한다.
 

@@ -21,7 +21,8 @@ class RecapPainterTest {
             seg.add(new double[]{37.55 - i * 0.002, 126.98 + i * 0.004});
         }
         return new RecapScene("남한산성", "용산구 동자동", "2026년 11월 12일", "42.3km", "1시간 5분", 1, true,
-                photo, noDerivatives, List.of(seg), List.of(seg.get(25)), new double[]{37.4786, 127.1817});
+                photo, noDerivatives, List.of(seg), List.of(seg.get(25)), new double[]{37.4786, 127.1817},
+                List.of(new RecapScene.Waypoint("양천구 목동중앙남로 11-15", seg.get(40)[0], seg.get(40)[1])));
     }
 
     private static BufferedImage solid(int w, int h, Color c) {

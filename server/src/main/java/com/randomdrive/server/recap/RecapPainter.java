@@ -55,6 +55,7 @@ public final class RecapPainter {
     private static final Color ROUTE = new Color(0xffc24b);
     private static final Color STOP = new Color(0xff6b6b);
     private static final Color DEST = new Color(0x4ade80);
+    private static final Color WAYPOINT = new Color(0x60a5fa);
     private static final String PHOTO_CREDIT = "사진: 한국관광공사";
 
     private final RecapFonts fonts;
@@ -170,6 +171,17 @@ public final class RecapPainter {
             double[] w = RouteCamera.world(s);
             if (plan.nearestAlong(w) <= drawnLen) {
                 drawPin3d(g, map.project(cam, w[0], w[1]), STOP, 13);
+            }
+        }
+        // 경유지: 경로선이 그 지점까지 그려지면 파란 핀과 이름표
+        for (RecapScene.Waypoint wp : scene.waypoints()) {
+            double[] w = RouteCamera.world(wp.latLng());
+            if (plan.nearestAlong(w) <= drawnLen) {
+                PerspectiveMap.Projected p = map.project(cam, w[0], w[1]);
+                drawPin3d(g, p, WAYPOINT, 15);
+                if (p != null) {
+                    drawLabel(g, wp.name(), p.x(), p.y() - 44, 300);
+                }
             }
         }
         double[] dest = RouteCamera.world(scene.destination());
@@ -300,7 +312,12 @@ public final class RecapPainter {
         double eased = easeOut(countUp);
         y = drawStat(g, "이동 거리", String.format(java.util.Locale.ROOT, "%.1fkm", parseKm(scene.distanceText()) * eased), x, y, w) + 40;
         y = drawStat(g, "주행 시간", scene.durationText(), x, y, w) + 40;
-        drawStat(g, "예상 밖 정차", Math.round(scene.stopCount() * eased) + "회", x, y, w);
+        y = drawStat(g, "예상 밖 정차", Math.round(scene.stopCount() * eased) + "회", x, y, w) + 40;
+        if (!scene.waypoints().isEmpty()) {
+            List<RecapScene.Waypoint> wps = scene.waypoints();
+            String first = wps.get(0).name();
+            drawStat(g, "경유지", wps.size() == 1 ? first : first + " 외 " + (wps.size() - 1) + "곳", x, y, w);
+        }
 
         drawText(g, "갈래말래", fonts.bold(30), ROUTE, x, VIDEO_H - 130, w, 1, 30);
         if (mapTiles) {
@@ -332,6 +349,7 @@ public final class RecapPainter {
             g.setClip(0, 0, THUMB_H, THUMB_H);
             geo.drawRoute(g, geo.totalLength);
             geo.stops.forEach(stop -> drawPin(g, stop.point, STOP, 11));
+            geo.waypoints.forEach(wp -> drawPin(g, wp.point, WAYPOINT, 12));
             drawPin(g, geo.destination, DEST, 15);
             g.setClip(null);
             g.translate(-px, 0);
@@ -399,6 +417,26 @@ public final class RecapPainter {
         road.curveTo(x + w * 0.45, y + h * 0.75, x + w * 0.3, y + h * 0.35, x + w * 0.8, y + h * 0.2);
         g.draw(road);
         drawPin(g, new Point2D.Double(x + w * 0.8, y + h * 0.2), DEST, 22);
+    }
+
+    /** 지도 위 이름표: 가운데 정렬, 어두운 둥근 바탕, [maxWidth]를 넘으면 말줄임. */
+    private void drawLabel(Graphics2D g, String text, double cx, double baseline, int maxWidth) {
+        g.setFont(fonts.bold(26));
+        FontMetrics fm = g.getFontMetrics();
+        String t = text;
+        while (t.length() > 1 && fm.stringWidth(t) > maxWidth) {
+            t = t.substring(0, t.length() - 1);
+        }
+        if (!t.equals(text)) {
+            t = t.substring(0, Math.max(1, t.length() - 1)) + "…";
+        }
+        int w = fm.stringWidth(t);
+        int x = (int) Math.round(cx - w / 2.0);
+        int y = (int) Math.round(baseline);
+        g.setColor(new Color(0, 0, 0, 150));
+        g.fillRoundRect(x - 12, y - fm.getAscent() - 6, w + 24, fm.getAscent() + fm.getDescent() + 12, 14, 14);
+        g.setColor(TEXT);
+        g.drawString(t, x, y);
     }
 
     private static void drawPin(Graphics2D g, Point2D.Double p, Color color, double r) {
@@ -556,6 +594,7 @@ public final class RecapPainter {
         final List<List<Point2D.Double>> polylines = new ArrayList<>();
         final List<double[]> cumulative = new ArrayList<>();
         final List<Pin> stops = new ArrayList<>();
+        final List<Pin> waypoints = new ArrayList<>();
         Point2D.Double destination;
         double totalLength;
 
@@ -587,6 +626,10 @@ public final class RecapPainter {
             for (double[] s : scene.stops()) {
                 Point2D.Double p = map.project(s[0], s[1]);
                 geo.stops.add(new Pin(p, geo.nearestAlong(p)));
+            }
+            for (RecapScene.Waypoint wp : scene.waypoints()) {
+                Point2D.Double p = map.project(wp.lat(), wp.lng());
+                geo.waypoints.add(new Pin(p, geo.nearestAlong(p)));
             }
             geo.destination = map.project(scene.destination()[0], scene.destination()[1]);
             return geo;

@@ -56,6 +56,14 @@ public class MapProxyService {
         return jpeg;
     }
 
+    /** 장소 이름·주소 → 좌표 {lat, lng}. 못 찾으면 null. */
+    public double[] search(String query) {
+        if (query == null || query.isBlank() || query.length() > 200) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", "query: 1~200자");
+        }
+        return vworld.search(query);
+    }
+
     /** 좌표의 행정구역 이름. 바다·키 없음·실패면 null. */
     public VWorldClient.Area area(double lat, double lng) {
         return vworld.area(lat, lng);

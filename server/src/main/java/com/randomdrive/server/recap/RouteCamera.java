@@ -97,6 +97,7 @@ public final class RouteCamera {
 
     public static RouteCamera plan(RecapScene scene, int width, int height, int frames, double fps) {
         List<double[]> extra = new ArrayList<>(scene.stops());
+        scene.waypoints().forEach(w -> extra.add(w.latLng()));
         extra.add(scene.destination());
         return new RouteCamera(scene.route(), extra, width, height, frames, fps);
     }

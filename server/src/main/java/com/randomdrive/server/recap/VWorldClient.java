@@ -11,9 +11,11 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -116,6 +118,48 @@ public class VWorldClient {
             log.warn("VWorld reverse geocode failed: {}", e.toString());
             return null;
         }
+    }
+
+    /**
+     * 장소 이름이나 주소로 좌표를 찾는다(VWorld 검색 API: 장소 → 도로명 주소 → 지번 주소 순).
+     * 내비가 경유지 좌표를 주지 않을 때(에뮬레이터는 0,0) 경유지 이름·주소로 찾는 데 쓴다. 못 찾으면 null. {lat, lng}
+     */
+    public double[] search(String query) {
+        if (!enabled() || query == null || query.isBlank()) {
+            return null;
+        }
+        for (String type : new String[]{"type=place", "type=address&category=road", "type=address&category=parcel"}) {
+            String url = "https://api.vworld.kr/req/search?service=search&request=search&version=2.0&crs=EPSG:4326"
+                    + "&size=1&page=1&format=json&errorformat=json&" + type
+                    + "&query=" + URLEncoder.encode(query.trim(), StandardCharsets.UTF_8) + "&key=" + apiKey;
+            try {
+                HttpResponse<String> res = http.send(get(url), HttpResponse.BodyHandlers.ofString());
+                double[] found = res.statusCode() / 100 == 2 ? parseSearch(res.body()) : null;
+                if (found != null) {
+                    return found;
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return null;
+            } catch (Exception e) {
+                log.warn("VWorld search failed: {}", e.toString());
+            }
+        }
+        return null;
+    }
+
+    /** 검색 응답의 첫 결과 좌표 {lat, lng}. 결과가 없으면 null. point.x=경도, point.y=위도. */
+    double[] parseSearch(String body) throws Exception {
+        JsonNode res = json.readTree(body).path("response");
+        if (!"OK".equals(res.path("status").asString(""))) {
+            return null;
+        }
+        JsonNode point = res.path("result").path("items").path(0).path("point");
+        String x = point.path("x").asString(""), y = point.path("y").asString("");
+        if (x.isBlank() || y.isBlank()) {
+            return null;
+        }
+        return new double[]{Double.parseDouble(y), Double.parseDouble(x)};
     }
 
     /** 짧은 이름만(영상 출발지 표시용). */
