@@ -25,10 +25,16 @@ val serverApiKey = (project.findProperty("gallaemallae.apiKey") as String?) ?: l
 (localProps.stringPropertyNames() + project.properties.keys).filter { it.startsWith("randomdrive.") }.toSet().forEach {
     logger.warn("w: '$it'는 더 이상 쓰지 않습니다 → '${it.replaceFirst("randomdrive.", "gallaemallae.")}'로 바꿔 주세요 (local.properties 또는 -P)")
 }
-if (gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) } &&
-    !releaseServerBaseUrl.startsWith("https://")
-) {
+// release 서명(배포 키). local.properties의 gallaemallae.release.*(git 미포함). 키 파일은 keystore/(git 미포함).
+fun signingProp(name: String): String? = (project.findProperty("gallaemallae.release.$name") as String?)
+    ?: localProps.getProperty("gallaemallae.release.$name")
+val releaseStoreFile = signingProp("storeFile")
+val releaseRequested = gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }
+if (releaseRequested && !releaseServerBaseUrl.startsWith("https://")) {
     throw GradleException("release 빌드에는 -Pgallaemallae.releaseServerBaseUrl=https://... 가 필요합니다")
+}
+if (releaseRequested && (releaseStoreFile == null || !rootProject.file(releaseStoreFile).exists())) {
+    throw GradleException("release 빌드에는 배포 서명 키가 필요합니다: local.properties에 gallaemallae.release.storeFile/storePassword/keyAlias/keyPassword (README 참고)")
 }
 
 android {
@@ -49,6 +55,17 @@ android {
         buildConfigField("String", "SERVER_API_KEY", "\"$serverApiKey\"")
     }
 
+    signingConfigs {
+        create("release") {
+            if (releaseStoreFile != null) {
+                storeFile = rootProject.file(releaseStoreFile)
+                storePassword = signingProp("storePassword")
+                keyAlias = signingProp("keyAlias")
+                keyPassword = signingProp("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             buildConfigField("boolean", "USE_FAKE_SERVER", useFakeServer.toString())
@@ -56,12 +73,14 @@ android {
             buildConfigField("boolean", "DEMO_MODE", demoMode.toString())
         }
         release {
+            signingConfig = signingConfigs.getByName("release")
             buildConfigField("boolean", "USE_FAKE_SERVER", "false")
             buildConfigField("String", "SERVER_BASE_URL", "\"$releaseServerBaseUrl\"")
             buildConfigField("boolean", "DEMO_MODE", "false")
+            // 앱 전체를 R8로 줄인다. packageScope로 라이브러리만 줄이면 앱 클래스가 이름이 바뀐 kotlin 클래스에 접근하지 못해
+            // 실행하자마자 IllegalAccessError로 종료된다(2026-11-14 release 실기 확인).
             optimization {
                 enable = true
-                packageScope = setOf("androidx.**", "kotlin.**", "kotlinx.**")
             }
         }
     }

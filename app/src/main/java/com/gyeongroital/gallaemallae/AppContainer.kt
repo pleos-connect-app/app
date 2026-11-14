@@ -1,5 +1,6 @@
 package com.gyeongroital.gallaemallae
 
+import com.gyeongroital.gallaemallae.consent.ConsentStore
 import com.gyeongroital.gallaemallae.data.FakeRecapApi
 import com.gyeongroital.gallaemallae.data.HttpRecapApi
 import com.gyeongroital.gallaemallae.data.RecapApi
@@ -16,6 +17,10 @@ class AppContainer(private val context: Context) {
     val tripStore by lazy { TripStore(context.filesDir) }
     val location by lazy { LocationSource(context) }
     val navi by lazy { NaviGateway(context) }
+    val consent by lazy { ConsentStore(context) }
+
+    /** 개인정보처리방침·위치정보 이용약관 전문(서버가 제공하는 정적 페이지). 동의 화면 QR로 보여 준다. */
+    val policyUrl: String = BuildConfig.SERVER_BASE_URL.trimEnd('/') + "/privacy.html"
 
     val usingFakeServer: Boolean = BuildConfig.USE_FAKE_SERVER
     val demoMode: Boolean = BuildConfig.DEMO_MODE

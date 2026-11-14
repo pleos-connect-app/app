@@ -1,9 +1,11 @@
 package com.gyeongroital.gallaemallae
 
 import com.gyeongroital.gallaemallae.trip.TripPhase
+import com.gyeongroital.gallaemallae.ui.ConsentScreen
 import com.gyeongroital.gallaemallae.ui.DrawingScreen
 import com.gyeongroital.gallaemallae.ui.FinishingScreen
 import com.gyeongroital.gallaemallae.ui.HomeScreen
+import com.gyeongroital.gallaemallae.ui.ConsentScreen
 import com.gyeongroital.gallaemallae.ui.MainViewModel
 import com.gyeongroital.gallaemallae.ui.PreTrip
 import com.gyeongroital.gallaemallae.ui.RecapScreen
@@ -26,6 +28,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -48,21 +53,45 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (!container.location.hasPermission()) requestPermissions()
+        // 위치 권한은 개인정보·위치정보 동의를 받은 뒤에 요청한다.
+        if (container.consent.agreed.value && !container.location.hasPermission()) requestPermissions()
         setContent {
             GallaemallaeTheme {
                 val state by vm.state.collectAsStateWithLifecycle()
+                val consented by container.consent.agreed.collectAsStateWithLifecycle()
+                var showPrivacy by rememberSaveable { mutableStateOf(false) }
                 Scaffold(
                     containerColor = MaterialTheme.colorScheme.background,
                 ) { padding ->
                     Box(Modifier.fillMaxSize().padding(padding)) {
                         val s = state.session
                         when {
+                            !consented -> {
+                                // Back은 동의가 아니다 → 앱을 뒤로 보낸다
+                                BackHandler { moveTaskToBack(true) }
+                                ConsentScreen(
+                                    container.policyUrl, withdrawMode = false,
+                                    onAgree = {
+                                        vm.agreeConsent()
+                                        if (!container.location.hasPermission()) requestPermissions()
+                                    },
+                                    onDecline = {}, onWithdraw = {}, onClose = {},
+                                )
+                            }
+                            showPrivacy && s == null -> {
+                                BackHandler { showPrivacy = false }
+                                ConsentScreen(
+                                    container.policyUrl, withdrawMode = true,
+                                    onAgree = {}, onDecline = {},
+                                    onWithdraw = { showPrivacy = false; vm.withdrawConsent() },
+                                    onClose = { showPrivacy = false },
+                                )
+                            }
                             s == null -> when (val p = state.preTrip) {
                                 PreTrip.Home -> {
                                     // 최상위 화면 Back = 앱 종료가 아니라 백그라운드로(CCP 가이드)
                                     BackHandler { moveTaskToBack(true) }
-                                    HomeScreen(state, ::requestPermissions, ::openLocationSettings, vm::draw, vm::retryNaviConnect, vm::consumeMessage)
+                                    HomeScreen(state, ::requestPermissions, ::openLocationSettings, vm::draw, vm::retryNaviConnect, vm::consumeMessage) { showPrivacy = true }
                                 }
                                 is PreTrip.Drawing -> {
                                     BackHandler { }

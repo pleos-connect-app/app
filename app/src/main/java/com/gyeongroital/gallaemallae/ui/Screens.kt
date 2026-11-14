@@ -51,6 +51,7 @@ fun HomeScreen(
     onDraw: (Int) -> Unit,
     onRetryNavi: () -> Unit,
     onDismissMessage: () -> Unit,
+    onOpenPrivacy: () -> Unit,
 ) {
     var radius by remember { mutableStateOf(MainViewModel.RADIUS_OPTIONS.first()) }
     val ready = state.location is LocationState.Ready
@@ -102,6 +103,7 @@ fun HomeScreen(
             state.message?.let { Card { Body(it, error = true) } }
             PrimaryButton("목적지 뽑기", onClick = { onDraw(radius) }, enabled = ready)
             if (state.usingFakeServer) Body("개발용: 앱 내장 후보 목록 사용 중 (서버 미연결)", muted = true)
+            SecondaryButton("개인정보·위치정보 안내", onOpenPrivacy)
         },
     )
 }
@@ -241,7 +243,7 @@ fun TripScreen(s: TripSession, onShowNavi: () -> Unit, onEnd: () -> Unit, onDisc
 }
 
 @Composable
-private fun ConfirmDialog(title: String, text: String, confirm: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+internal fun ConfirmDialog(title: String, text: String, confirm: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Title(title) },
@@ -287,7 +289,7 @@ fun RecapScreen(s: TripSession, onNewTrip: () -> Unit) {
             RecapThumbnail(s.thumbnailUrl, s.destination.imageUrl)
             if (summary != null) {
                 Card {
-                    Body("이동 거리 ${formatKm(summary.distanceKm)}")
+                    Body("이동 거리 ${formatSummaryKm(summary.distanceKm)}")
                     Body("이동 시간 ${formatMinutes(summary.durationMin)}")
                     Body("예상 밖 정차 ${summary.stopCount}회")
                 }
@@ -311,6 +313,9 @@ private const val NO_FIX_WARNING_MS = 30_000L
 // ---------------- 포맷 ----------------
 
 internal fun formatKm(km: Double): String = if (km < 10) String.format(Locale.US, "%.1fkm", km) else "${Math.round(km)}km"
+
+/** 리캡 요약 거리. 서버 썸네일·영상·공유 페이지와 같은 숫자로 보이도록 항상 소수 첫째 자리(22.7km). */
+internal fun formatSummaryKm(km: Double): String = String.format(Locale.US, "%.1fkm", km)
 
 internal fun formatDuration(seconds: Int): String = formatMinutes((seconds + 59) / 60)
 

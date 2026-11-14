@@ -128,6 +128,22 @@ class MainViewModel(app: Application, private val c: AppContainer) : AndroidView
 
     fun onPermissionResult() = startHomeLocation()
 
+    // ---------- 개인정보·위치정보 동의 ----------
+
+    fun agreeConsent() {
+        c.consent.agree()
+        startHomeLocation()
+    }
+
+    /** 동의 철회: 위치 사용을 멈추고 기기에 남은 여행 기록도 지운다. 홈(여행 없음)에서만 열 수 있다. */
+    fun withdrawConsent() {
+        stopHomeLocation()
+        c.tripStore.clear()
+        c.consent.withdraw()
+        location.value = LocationState.Loading
+        preTrip.value = PreTrip.Home
+    }
+
     private fun resumeSession() {
         val s = c.tripStore.session.value ?: return
         Log.i(TAG, "resume session ${s.tripId} phase=${s.phase}")
@@ -141,7 +157,8 @@ class MainViewModel(app: Application, private val c: AppContainer) : AndroidView
     // ---------- 홈: 현재 위치 ----------
 
     private fun startHomeLocation() {
-        if (!foreground.value || c.tripStore.session.value != null) return
+        // 동의 전에는 위치를 읽지 않는다(개인정보·위치정보 동의 절차).
+        if (!c.consent.agreed.value || !foreground.value || c.tripStore.session.value != null) return
         if (!c.location.hasPermission()) {
             location.value = LocationState.NoPermission
             return
