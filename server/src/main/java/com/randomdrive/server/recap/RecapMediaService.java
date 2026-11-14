@@ -183,7 +183,32 @@ public class RecapMediaService {
                 route,
                 visibleStops,
                 new double[]{destination.lat(), destination.lng()},
-                waypoints(data.events(), origin));
+                waypoints(data.events(), origin).stream()
+                        .map(w -> new RecapScene.Waypoint(displayName(w.name(), () -> vworld.areaName(w.lat(), w.lng())),
+                                w.lat(), w.lng()))
+                        .toList());
+    }
+
+    /**
+     * 경유지 표시 이름. 내비가 주소를 이름으로 주면("서울특별시 양천구 목동중앙남로 11-15 (목동)") 이름표가 잘려
+     * 알아보기 어려우므로 동네 이름("양천구 목동")으로 바꾼다. 장소 이름("스타벅스 강남점")은 그대로.
+     */
+    static String displayName(String name, java.util.function.Supplier<String> areaName) {
+        if (!looksLikeAddress(name)) {
+            return name;
+        }
+        String area = areaName.get();
+        if (area != null && !area.isBlank()) {
+            return area;
+        }
+        // 동네 이름을 못 구하면 시·도를 떼고, 괄호 안 동 이름이 있으면 그걸 붙인다
+        String rest = name.replaceFirst("^\\S+(특별시|광역시|특별자치시|특별자치도|도)\\s+", "");
+        return rest.replaceAll("\\s*\\(.*\\)\\s*$", "").trim();
+    }
+
+    /** 시·도로 시작하는 문자열 = 주소. */
+    static boolean looksLikeAddress(String name) {
+        return name.matches("^\\S+(특별시|광역시|특별자치시|특별자치도|도)\\s+.*");
     }
 
     /**

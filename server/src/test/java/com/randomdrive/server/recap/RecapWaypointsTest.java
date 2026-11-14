@@ -43,6 +43,18 @@ class RecapWaypointsTest {
     }
 
     @Test
+    void 주소로_온_경유지_이름은_동네_이름으로_장소_이름은_그대로() {
+        assertThat(RecapMediaService.displayName("서울특별시 양천구 목동중앙남로 11-15 (목동)", () -> "양천구 목동"))
+                .isEqualTo("양천구 목동");
+        assertThat(RecapMediaService.displayName("서울특별시 양천구 목동중앙남로 11-15 (목동)", () -> null))
+                .isEqualTo("양천구 목동중앙남로 11-15");
+        assertThat(RecapMediaService.displayName("경기도 수원시 팔달구 정조로 910", () -> null))
+                .isEqualTo("수원시 팔달구 정조로 910");
+        assertThat(RecapMediaService.displayName("스타벅스 강남점", () -> "강남구 역삼동")).isEqualTo("스타벅스 강남점");
+        assertThat(RecapMediaService.displayName("광교호수공원", () -> "영통구 하동")).isEqualTo("광교호수공원");
+    }
+
+    @Test
     void 출발지_가림_영역_안의_경유지는_그리지_않는다() {
         List<RecapScene.Waypoint> wps = RecapMediaService.waypoints(List.of(
                 ev(EventType.WAYPOINT_ADDED, "집 앞 편의점", 37.4530, 126.9040)), ORIGIN);
