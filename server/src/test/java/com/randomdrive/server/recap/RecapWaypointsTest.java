@@ -32,6 +32,17 @@ class RecapWaypointsTest {
     }
 
     @Test
+    void 경유지_수와_이름_길이에_상한을_둔다() {
+        java.util.List<EventDto> many = new java.util.ArrayList<>();
+        for (int i = 0; i < 50; i++) {
+            many.add(ev(EventType.WAYPOINT_ADDED, i + "가".repeat(10_000), 37.0 + i * 0.01, 127.5));
+        }
+        List<RecapScene.Waypoint> wps = RecapMediaService.waypoints(many, ORIGIN);
+        assertThat(wps).hasSize(RecapMediaService.MAX_WAYPOINTS);
+        assertThat(wps).allSatisfy(w -> assertThat(w.name()).hasSizeLessThanOrEqualTo(RecapMediaService.MAX_WAYPOINT_NAME));
+    }
+
+    @Test
     void 출발지_가림_영역_안의_경유지는_그리지_않는다() {
         List<RecapScene.Waypoint> wps = RecapMediaService.waypoints(List.of(
                 ev(EventType.WAYPOINT_ADDED, "집 앞 편의점", 37.4530, 126.9040)), ORIGIN);

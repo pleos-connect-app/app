@@ -200,15 +200,26 @@ public class RecapMediaService {
             if (!inKorea(e.lat(), e.lng()) || RouteMask.isHidden(origin, e.lat(), e.lng())) {
                 continue;
             }
+            if (out.size() >= MAX_WAYPOINTS) {
+                break;
+            }
             String name = e.name() == null || e.name().isBlank() ? "경유지" : e.name().trim();
-            boolean dup = out.stream().anyMatch(w -> w.name().equals(name)
+            if (name.length() > MAX_WAYPOINT_NAME) {
+                name = name.substring(0, MAX_WAYPOINT_NAME); // 이름은 앱이 보내는 값 — 그리는 비용이 커지지 않게 자른다
+            }
+            String n = name;
+            boolean dup = out.stream().anyMatch(w -> w.name().equals(n)
                     || Geo.distanceKm(w.lat(), w.lng(), e.lat(), e.lng()) < 0.1);
             if (!dup) {
-                out.add(new RecapScene.Waypoint(name, e.lat(), e.lng()));
+                out.add(new RecapScene.Waypoint(n, e.lat(), e.lng()));
             }
         }
         return out;
     }
+
+    /** 영상에 그리는 경유지 수·이름 길이 상한(입력은 앱이 보내는 값이라 렌더링 비용을 묶어 둔다). */
+    static final int MAX_WAYPOINTS = 10;
+    static final int MAX_WAYPOINT_NAME = 40;
 
     private static boolean inKorea(double lat, double lng) {
         return lat >= 33 && lat <= 39 && lng >= 124 && lng <= 132;

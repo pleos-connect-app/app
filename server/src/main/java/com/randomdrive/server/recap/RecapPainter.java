@@ -423,7 +423,8 @@ public final class RecapPainter {
     private void drawLabel(Graphics2D g, String text, double cx, double baseline, int maxWidth) {
         g.setFont(fonts.bold(26));
         FontMetrics fm = g.getFontMetrics();
-        String t = text;
+        // 매 프레임 부르므로 길이를 먼저 묶어 반복 측정 횟수를 제한한다
+        String t = text.length() > 60 ? text.substring(0, 60) : text;
         while (t.length() > 1 && fm.stringWidth(t) > maxWidth) {
             t = t.substring(0, t.length() - 1);
         }
