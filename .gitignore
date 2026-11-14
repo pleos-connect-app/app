@@ -57,3 +57,6 @@ GoogleService-Info.plist
 .claude/worktrees/
 CLAUDE.local.md
 .playwright-mcp/
+
+# ---------- 공모전 제출용 release APK (apk/ 폴더만 커밋) ----------
+!apk/*.apk

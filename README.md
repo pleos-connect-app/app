@@ -1,7 +1,27 @@
 # 갈래말래 (Gallaemallae)
 
+> **반경만 고르면 오늘의 목적지를 랜덤으로 뽑아 주고, 다녀온 길을 리캡 영상으로 만들어 주는 차량용 여행 앱**
+
 반경(50 / 100 / 150km)만 고르면 오늘의 목적지를 랜덤으로 뽑아 내비게이션으로 안내하고,
-여행이 끝나면 이동 기록으로 리캡을 만들어 QR로 휴대폰에 공유하는 Pleos Connect 앱입니다.
+여행이 끝나면 이동 기록으로 리캡 영상을 만들어 QR로 휴대폰에 공유하는 Pleos Connect 앱입니다.
+
+팀 **경로이탈** · 2026 차량용 앱 개발 공모전 출품작
+
+## APK
+
+| 항목 | 값 |
+|---|---|
+| 파일 | [`apk/경로이탈_갈래말래_release.apk`](apk/) (release, 배포 키 서명) |
+| 연결 서버 | 테스트 서버 `https://13-125-180-227.sslip.io` (AWS 서울, HTTPS). 별도 설정 없이 바로 동작 |
+
+```bash
+adb install -r apk/경로이탈_갈래말래_release.apk
+adb shell am start --user 10 -n com.gyeongroital.gallaemallae/.MainActivity   # AAOS 사용자 ID 10
+```
+
+첫 실행 때 **위치정보 수집·이용 안내**가 나옵니다. "동의하고 시작"을 누르면 위치 권한을 묻고 홈으로 갑니다.
+에뮬레이터 위치를 한국으로 먼저 옮겨 두세요(아래 "에뮬레이터에서 확인하는 방법" 1번). 미국 기본 위치면
+"반경 안에 추천할 장소가 없어요"가 나옵니다.
 
 ## 개발·심사 환경
 
@@ -34,7 +54,22 @@ JDK 17 이상과 Android SDK가 필요합니다. 에뮬레이터를 켠 상태�
 설치 후 에뮬레이터 앱 목록에서 **갈래말래**를 누르거나
 `adb shell am start -n com.gyeongroital.gallaemallae/.MainActivity`로 실행합니다.
 
-릴리스 빌드는 `-Pgallaemallae.releaseServerBaseUrl=https://...`가 없으면 빌드가 멈춥니다(평문 HTTP 금지).
+### release 빌드
+
+```bash
+./gradlew :app:assembleRelease -Pgallaemallae.releaseServerBaseUrl=https://13-125-180-227.sslip.io
+```
+
+- `releaseServerBaseUrl`(https)이 없으면 빌드가 멈춥니다(평문 HTTP 금지, release는 가짜 서버를 쓰지 않음).
+- 배포 서명 키가 필요합니다. 키 파일(`keystore/`)과 비밀번호는 git에 넣지 않고 `local.properties`에 둡니다.
+  키를 잃으면 같은 앱으로 업데이트할 수 없으니 팀 비밀 저장소에 백업합니다.
+
+```properties
+gallaemallae.release.storeFile=keystore/gallaemallae-release.jks
+gallaemallae.release.storePassword=...
+gallaemallae.release.keyAlias=gallaemallae
+gallaemallae.release.keyPassword=...
+```
 
 ### 위성 지도·출발지 이름(선택)
 
@@ -64,7 +99,8 @@ cd server && ./gradlew bootRun
 
 1. 에뮬레이터 위치를 한국으로: `adb emu geo fix 126.9707 37.5547` (경도, 위도 — 서울역)
 2. 앱에서 반경 선택 → **목적지 뽑기** → **내비게이션 시작**
-3. 가상 주행: `python3 tools/emu-drive.py 37.5547 126.9707 <목적지 위도> <목적지 경도> --seconds 90 --dwell 20`
+3. 가상 주행: `python3 tools/emu-drive.py 37.5547 126.9707 <목적지 위도> <목적지 경도> --road --seconds 120 --dwell 25`
+   (`--road`는 실제 도로를 따라 움직여 리캡 영상에 진짜 경로가 그려집니다. 중간 정차를 넣으려면 `--stop-at 0.5 --stop-seconds 320`)
 4. 도착 확인 → **리캡 영상 만들기** → QR
 
 내비와 앱을 나란히 보려면 앱 창 오른쪽 끝의 ⋮ 손잡이를 왼쪽으로 끕니다.
@@ -80,6 +116,13 @@ cd server && ./gradlew bootRun
 
 DO(주행 중 사용)를 선언하지 않았습니다. 모든 조작은 정차(P) 중에 하고, 주행 중에는 시스템 차단 화면이
 표시됩니다. 위치 기록은 포그라운드 서비스로 주행 중에도 계속됩니다.
+
+## 개인정보·위치정보
+
+- 첫 실행 때 수집 항목·목적·보관 기간·거부 권리를 알리고 **"동의하고 시작" 버튼으로만** 동의를 받습니다. 동의 전에는 위치를 읽지 않습니다.
+- 홈의 "개인정보·위치정보 안내"에서 언제든 동의를 철회할 수 있고, 철회하면 기기의 여행 기록도 지웁니다.
+- 서버는 이동 경로를 리캡 영상을 만든 직후 지우고, 영상·공유 링크는 30일 뒤 지웁니다. 영상에는 출발지 1.5km 안의 경로를 넣지 않습니다.
+- 전문: 서버의 [`/privacy.html`](server/src/main/resources/static/privacy.html) (개인정보처리방침 + 위치정보 이용약관). 동의 화면 QR로 열립니다.
 
 ## 사용 권한
 
@@ -104,6 +147,7 @@ DO(주행 중 사용)를 선언하지 않았습니다. 모든 조작은 정차(P
 
 ## 문서
 
+- 브랜드·마켓 제출 이미지: [docs/brand/](docs/brand/) (로고 원본, 512px 아이콘, IVI 스크린샷 2560×1380)
 - 기능 명세(MVP): [docs/product/gallaemallae-mvp-spec.md](docs/product/gallaemallae-mvp-spec.md)
 - 구현 현황·검증 결과: [docs/product/v0-app-report.md](docs/product/v0-app-report.md)
 - 시나리오 검증·운영사무국 답변: [docs/product/scenario-v0-validation.md](docs/product/scenario-v0-validation.md)
