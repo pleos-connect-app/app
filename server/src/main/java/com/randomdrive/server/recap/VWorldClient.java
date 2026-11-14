@@ -51,6 +51,20 @@ public class VWorldClient {
 
     /** 위성 타일 한 장(256px). 키가 없거나 실패하면 null. */
     public BufferedImage satelliteTile(int z, int x, int y) {
+        byte[] jpeg = satelliteTileBytes(z, x, y);
+        if (jpeg == null) {
+            return null;
+        }
+        try {
+            return ImageIO.read(new ByteArrayInputStream(jpeg));
+        } catch (Exception e) {
+            log.debug("VWorld tile {}/{}/{} decode failed: {}", z, x, y, e.toString());
+            return null;
+        }
+    }
+
+    /** 위성 타일 원본 JPEG(앱 지도 중계용 — 키는 서버에만 둔다). 키가 없거나 실패하면 null. */
+    public byte[] satelliteTileBytes(int z, int x, int y) {
         if (!enabled()) {
             return null;
         }
@@ -63,7 +77,7 @@ public class VWorldClient {
                 log.debug("VWorld tile {}/{}/{} rejected: HTTP {} {}", z, x, y, res.statusCode(), type);
                 return null;
             }
-            return ImageIO.read(new ByteArrayInputStream(res.body()));
+            return res.body();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return null;
@@ -73,8 +87,18 @@ public class VWorldClient {
         }
     }
 
+    /** 행정구역 이름. [full]="서울특별시 용산구 동자동", [shortName]="용산구 동자동". */
+    public record Area(String full, String shortName) {
+    }
+
     /** 좌표의 "구 동" 이름(예: "용산구 동자동"). 바다·키 없음·실패면 null. */
     public String areaName(double lat, double lng) {
+        Area a = area(lat, lng);
+        return a == null ? null : a.shortName();
+    }
+
+    /** 좌표의 행정구역 이름(전체·짧은 이름). 바다·키 없음·실패면 null. */
+    public Area area(double lat, double lng) {
         if (!enabled()) {
             return null;
         }
@@ -84,7 +108,7 @@ public class VWorldClient {
                 lng, lat, apiKey);
         try {
             HttpResponse<String> res = http.send(get(url), HttpResponse.BodyHandlers.ofString());
-            return res.statusCode() / 100 == 2 ? parseAreaName(res.body()) : null;
+            return res.statusCode() / 100 == 2 ? parseArea(res.body()) : null;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return null;
@@ -94,15 +118,29 @@ public class VWorldClient {
         }
     }
 
-    /** 앱 VWorldGeocoder.parse와 같은 규칙의 짧은 이름: level2(구) + level4L(동·읍·면). 둘 다 없으면 시·도. */
+    /** 짧은 이름만(영상 출발지 표시용). */
     String parseAreaName(String body) throws Exception {
+        Area a = parseArea(body);
+        return a == null ? null : a.shortName();
+    }
+
+    /**
+     * 전체 이름: level1(시·도) + level2(구) + level3 + level4L(동·읍·면).
+     * 짧은 이름: level2 + level4L, 둘 다 없으면 시·도. 결과가 없으면 null.
+     */
+    Area parseArea(String body) throws Exception {
         JsonNode res = json.readTree(body).path("response");
         if (!"OK".equals(res.path("status").asString(""))) {
             return null;
         }
         JsonNode s = res.path("result").path(0).path("structure");
+        String full = join(s.path("level1").asString(""), s.path("level2").asString(""),
+                s.path("level3").asString(""), s.path("level4L").asString(""));
         String shortName = join(s.path("level2").asString(""), s.path("level4L").asString(""));
-        return shortName.isEmpty() ? emptyToNull(s.path("level1").asString("")) : shortName;
+        if (shortName.isEmpty()) {
+            shortName = emptyToNull(s.path("level1").asString(""));
+        }
+        return full.isEmpty() || shortName == null ? null : new Area(full, shortName);
     }
 
     private static String join(String... parts) {

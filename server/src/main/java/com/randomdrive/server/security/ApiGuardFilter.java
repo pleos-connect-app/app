@@ -74,6 +74,11 @@ public class ApiGuardFilter extends OncePerRequestFilter {
                 kind = "finish"; limit = rl.finishesPerHour(); window = HOUR;
             } else if (path.endsWith("/recap")) {
                 kind = "recap"; limit = rl.recapsPerMinute(); window = MINUTE;
+            } else if (path.startsWith("/api/v1/map/")) {
+                // 추첨 화면 한 번에 위성 타일 수십~백여 장을 받는다
+                kind = "tile"; limit = rl.tilesPerMinute(); window = MINUTE;
+            } else if (path.equals("/api/v1/geo/area")) {
+                kind = "geo"; limit = rl.geosPerMinute(); window = MINUTE;
             } else {
                 kind = "other"; limit = rl.othersPerMinute(); window = MINUTE;
             }

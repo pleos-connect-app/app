@@ -17,6 +17,7 @@ Pleos Connect 앱(`../`)이 호출하는 API 서버. 앱 쪽 `CLAUDE.md`의 Pleo
 - `exception` — `ApiException` 계열 예외 + `GlobalExceptionHandler`(`@RestControllerAdvice`).
 - `security` — `/api` 앞단 보호(`ApiGuardFilter`: 앱 키·IP당 요청 수 제한, `RateLimiter`).
 - `persistence` — DB 저장. `TripStore`(트립 한 건 = 메모리 객체 하나로 캐시, 상태를 바꾼 쪽이 `synchronized(trip)` 안에서 save), 엔티티 `TripEntity`(목적지·상태·요약·공유 토큰), `TripFinishEntity`(주행 데이터 JSON, 생성할 때만 읽음). **주행 데이터는 트립이 DONE·FAILED가 되면 바로 지운다**(개인정보처리방침 약속, 서버 시작 때 남은 것도 정리).
+- `controller/MapController`·`service/MapProxyService` — 앱 지도 중계(위성 타일, 좌표 → 지역 이름). VWorld 키를 앱에 두지 않기 위함.
 - `recap` — 리캡 영상·썸네일 생성(F-07). `RecapMediaService`(조립·파일), `RecapPainter`(장면 그리기, 네트워크 없음), `FfmpegEncoder`, `RouteCamera`(경로 장면 카메라 움직임)·`PerspectiveMap`(기울인 지도 2.5D 렌더링)·`TileCache`(타일 미리 받기), `MapView`(썸네일용 평면 지도), `RouteMask`(출발지 가리기), `VWorldClient`(위성 타일·역지오코딩), `PhotoLoader`. 생성 작업 스레드는 `RecapExecutorConfig`(`recap.workers`, 0이면 요청 안에서 바로 — 테스트용).
 - `tourapi` — 한국관광공사 TourAPI 연동. 요청 처리 중에는 호출하지 않고, `./gradlew importCandidates`(프로필 `local,import`)로 후보 파일을 만들 때만 쓴다.
 
@@ -35,9 +36,9 @@ Pleos Connect 앱(`../`)이 호출하는 API 서버. 앱 쪽 `CLAUDE.md`의 Pleo
 
 공통 규칙:
 - 시간은 epoch 밀리초(`long`), 좌표는 `lat`/`lng`(`double`).
-- 오류 응답: HTTP 상태코드 + `{"code": "...", "message": "..."}`. 코드: `INVALID_REQUEST`(400), `UNAUTHORIZED`(401), `TRIP_NOT_FOUND`(404), `NO_CANDIDATE`(404), `RATE_LIMITED`(429, `Retry-After` 헤더 = 초).
+- 오류 응답: HTTP 상태코드 + `{"code": "...", "message": "..."}`. 코드: `INVALID_REQUEST`(400), `UNAUTHORIZED`(401), `TRIP_NOT_FOUND`(404), `NO_CANDIDATE`(404), `RATE_LIMITED`(429, `Retry-After` 헤더 = 초), `MAP_UNAVAILABLE`(503, 지도 타일을 받지 못함).
 - 앱 키: `/api/v1/**` 요청은 `X-App-Key` 헤더를 보낸다. 서버에 `api.keys`(환경변수 `API_KEYS`, 쉼표로 여러 개 = 교체 기간)가 설정돼 있을 때만 검사한다. 공유 페이지 `/r/**`는 검사하지 않는다.
-- 요청 수 제한(클라이언트 IP당, `security/ApiGuardFilter`): 목적지 추첨 분당 30, finish 시간당 30, 리캡 조회 분당 120, 그 밖 분당 60. `api.rate-limit.*`로 조정.
+- 요청 수 제한(클라이언트 IP당, `security/ApiGuardFilter`): 목적지 추첨 분당 30, finish 시간당 30, 리캡 조회 분당 120, 지도 타일 분당 600, 지역 이름 분당 30, 그 밖 분당 60. `api.rate-limit.*`로 조정.
 - `TripStatus`: `PENDING`, `RUNNING`, `DONE`, `FAILED`.
 
 ### 1. `POST /api/v1/destinations/random` → 200
@@ -91,7 +92,13 @@ Pleos Connect 앱(`../`)이 호출하는 API 서버. 앱 쪽 `CLAUDE.md`의 Pleo
 - 공유 페이지와 같은 토큰·만료 규칙(없으면 404, 기간 지남 410, 바디 없음). 영상은 Range 요청 지원(휴대폰 브라우저 재생).
 - `Cache-Control: private, max-age=3600`, `Referrer-Policy: no-referrer`, `X-Robots-Tag: noindex`.
 
-### 6. `GET /privacy.html` (개인정보처리방침·위치정보 이용약관)
+### 6. 지도 중계 (VWorld 키는 서버에만, 2026-11-14 앱 담당과 합의)
+
+VWorld 인증키는 APK에서 꺼낼 수 있어 앱에 넣지 않는다. 앱은 위성 지도와 지역 이름을 이 서버를 거쳐 받는다(`MapController`·`MapProxyService`).
+- `GET /api/v1/map/satellite/{z}/{x}/{y}.jpeg` → 200 `image/jpeg`(VWorld WMTS 위성 256px, `Cache-Control: private, max-age=604800`). z는 6~18, x·y는 0~2^z-1(밖이면 400). 키가 없거나 받지 못하면 503 `MAP_UNAVAILABLE`(앱은 지도 없는 배경). 최근 500장을 메모리에 둔다.
+- `GET /api/v1/geo/area?lat=&lng=` → 200 `{"full": "서울특별시 용산구 동자동", "short": "용산구 동자동"}`. 못 찾거나 키가 없으면 둘 다 `null`. 좌표 범위 밖·누락은 400. 좌표는 저장하지 않는다.
+
+### 7. `GET /privacy.html` (개인정보처리방침·위치정보 이용약관)
 
 앱이 호출하지 않는다. 앱 동의 화면의 QR이 연다(`{서버 주소}/privacy.html`, 위치정보 이용약관은 `#location-terms`). 정적 파일 `src/main/resources/static/privacy.html`.
 - 보관 기간·처리 항목을 바꾸면 이 페이지와 앱 동의 화면(`ConsentScreen`, `ConsentStore.VERSION`)을 함께 고친다.

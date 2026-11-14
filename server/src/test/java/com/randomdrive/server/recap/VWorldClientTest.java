@@ -19,6 +19,15 @@ class VWorldClientTest {
     }
 
     @Test
+    void 전체_이름은_시도부터_잇는다() throws Exception {
+        String body = """
+                {"response":{"status":"OK","result":[{"structure":
+                  {"level1":"경기도","level2":"수원시 영통구","level3":"","level4L":"매탄동"}}]}}
+                """;
+        assertThat(client.parseArea(body)).isEqualTo(new VWorldClient.Area("경기도 수원시 영통구 매탄동", "수원시 영통구 매탄동"));
+    }
+
+    @Test
     void 결과가_없으면_null() throws Exception {
         assertThat(client.parseAreaName("{\"response\":{\"status\":\"NOT_FOUND\"}}")).isNull();
     }

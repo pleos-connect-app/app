@@ -214,3 +214,12 @@ cd server && ./gradlew bootRun
 | 시연 | demo(남한산성)에 TourAPI "남한산성도립공원" 사진(공공누리 3유형) 추가 — `CandidateImporter.DEMO`와 `candidates.json`의 demo 줄 |
 
 서버 테스트 90개 통과, 로컬에서 영상·썸네일을 실제로 만들어 프레임을 확인했습니다.
+
+### 9-1. 지도 중계 추가 (같은 날, 계약 추가)
+
+APK를 풀면 VWorld 인증키가 그대로 보여서(release `classes.dex`에 평문) 앱에서 키를 뺐습니다. 앱은 위성 지도와 지역 이름을 서버에서 받습니다.
+
+- `GET /api/v1/map/satellite/{z}/{x}/{y}.jpeg`, `GET /api/v1/geo/area?lat=&lng=` — 계약은 `server/CLAUDE.md` 6장
+- 요청 수 제한: 지도 타일 분당 600(추첨 화면 한 번에 수십~백여 장), 지역 이름 분당 30
+- **배포 서버에 `VWORLD_API_KEY`가 있어야** 앱 지도가 나옵니다(이미 넣어 두셨음). 없으면 앱은 지도 없는 배경으로 동작
+- 키가 이미 공개 APK에 들어간 적이 없도록 이번 제출 APK부터 빠져 있습니다. 예전 debug APK를 나눠 준 적이 있으면 VWorld에서 키를 새로 발급받는 것도 고려해 주세요.

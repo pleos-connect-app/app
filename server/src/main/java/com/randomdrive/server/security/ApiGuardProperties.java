@@ -27,13 +27,17 @@ public record ApiGuardProperties(
      * @param finishesPerHour       주행 종료(영상 생성을 일으키는 무거운 요청)
      * @param recapsPerMinute       리캡 조회(앱이 2초마다 최대 3분 조회)
      * @param othersPerMinute       그 밖의 /api 요청
+     * @param tilesPerMinute        앱 위성 지도 타일 중계(추첨 화면 한 번에 수십~백여 장)
+     * @param geosPerMinute         좌표 → 지역 이름(앱은 1km 이상 움직였을 때만 묻는다)
      */
     public record RateLimit(
             @DefaultValue("true") boolean enabled,
             @DefaultValue("30") int destinationsPerMinute,
             @DefaultValue("30") int finishesPerHour,
             @DefaultValue("120") int recapsPerMinute,
-            @DefaultValue("60") int othersPerMinute
+            @DefaultValue("60") int othersPerMinute,
+            @DefaultValue("600") int tilesPerMinute,
+            @DefaultValue("30") int geosPerMinute
     ) {
     }
 }
