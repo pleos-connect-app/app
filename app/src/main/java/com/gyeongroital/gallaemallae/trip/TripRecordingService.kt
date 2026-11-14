@@ -6,9 +6,10 @@ import com.gyeongroital.gallaemallae.GallaemallaeApp
 import com.gyeongroital.gallaemallae.domain.ArrivalDetector
 import com.gyeongroital.gallaemallae.domain.ArrivalSource
 import com.gyeongroital.gallaemallae.domain.LatLng
-import com.gyeongroital.gallaemallae.domain.TrackPoint
 import com.gyeongroital.gallaemallae.domain.TripEvent
 import com.gyeongroital.gallaemallae.domain.TripEventType
+import com.gyeongroital.gallaemallae.domain.WaypointTracker
+import com.gyeongroital.gallaemallae.domain.isKnown
 import com.gyeongroital.gallaemallae.navi.NaviEvent
 import com.gyeongroital.gallaemallae.navi.WaypointPoint
 import android.app.NotificationChannel
@@ -41,7 +42,6 @@ class TripRecordingService : LifecycleService() {
 
     private val container get() = (application as GallaemallaeApp).container
     private var job: Job? = null
-    private var lastPoint: TrackPoint? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
@@ -65,6 +65,8 @@ class TripRecordingService : LifecycleService() {
     private suspend fun record(session: TripSession) {
         val store = container.tripStore
         val detector = ArrivalDetector(session.destination.latLng)
+        // 서비스가 다시 시작돼도 이미 기록한 경유지·도착 상태를 이어 간다
+        waypoints = WaypointTracker(session.events)
         // 세션이 지워지거나(취소) 기록 단계가 끝나면(종료·도착) 스스로 멈춘다. 화면 쪽은 서비스를 직접 멈추지 않는다.
         lifecycleScope.launch {
             store.session.first { it == null || it.tripId != session.tripId || it.phase != TripPhase.RECORDING }
@@ -76,7 +78,7 @@ class TripRecordingService : LifecycleService() {
                 when (e) {
                     is NaviEvent.WaypointAdded -> onWaypointAdded(e.name)
                     is NaviEvent.Waypoints -> onWaypoints(e.items)
-                    is NaviEvent.WaypointArrived -> store.addEvent(event(TripEventType.WAYPOINT_ARRIVED, e.name, waypointAt(e.name)))
+                    is NaviEvent.WaypointArrived -> onWaypointArrived(e.name)
                     is NaviEvent.DestinationArrived -> markArrived(ArrivalSource.NAVI_EVENT)
                     else -> Unit
                 }
@@ -86,39 +88,70 @@ class TripRecordingService : LifecycleService() {
         withContext(Dispatchers.IO) {
             container.location.updates().collect { p ->
                 if (store.session.value?.phase != TripPhase.RECORDING) return@collect
-                lastPoint = p
                 store.appendPoint(p)
+                // 경유지 도착(앱 판정): 내비 알림이 오지 않는 환경(에뮬레이터) 대비. 내비 알림이 먼저 왔으면 건너뜀
+                synchronized(waypoints) { waypoints.onPoint(p) }.forEach { (name, at) ->
+                    store.addEvent(event(TripEventType.WAYPOINT_ARRIVED, name, at))
+                }
                 if (detector.onPoint(p)) markArrived(ArrivalSource.APP_GEOFENCE)
             }
         }
     }
 
-    // ---- 경유지: 좌표는 getWaypointInfo() 응답으로만 온다 ----
-    private val knownWaypoints = mutableListOf<WaypointPoint>()
+    // ---- 경유지 ----
+    // 좌표는 getWaypointInfo() 응답으로만 온다. 에뮬레이터 내비는 0,0을 주므로 이름·주소로 서버에 묻는다.
+    // 끝내 모르면 0,0("모름")으로 기록한다 — 차량 위치로 대신 찍으면 영상에 엉뚱한 곳이 경유지로 나온다.
+    private var waypoints = WaypointTracker()
     private var pendingWaypoint: Job? = null
 
     private fun onWaypointAdded(name: String?) {
         container.navi.requestWaypoints()
         pendingWaypoint?.cancel()
-        // 5초 안에 좌표가 안 오면 차량 위치로라도 남긴다.
+        // 5초 안에 경유지 목록이 안 오면 이름만으로 기록(좌표는 이름으로 찾아 본다).
         pendingWaypoint = lifecycleScope.launch {
             delay(5_000)
-            container.tripStore.addEvent(event(TripEventType.WAYPOINT_ADDED, name, null))
+            val n = name ?: WaypointTracker.UNNAMED
+            if (!reserve(n)) return@launch
+            recordWaypoint(n, resolve(n, null))
         }
     }
 
     private fun onWaypoints(items: List<WaypointPoint>) {
-        val new = items.filter { w -> knownWaypoints.none { it == w } }
-        if (new.isEmpty()) return
-        pendingWaypoint?.cancel()
-        knownWaypoints += new
-        new.forEach { w -> container.tripStore.addEvent(event(TripEventType.WAYPOINT_ADDED, w.name, LatLng(w.lat, w.lng))) }
+        items.forEach { w ->
+            if (!reserve(w.name)) return@forEach
+            pendingWaypoint?.cancel()
+            val given = LatLng(w.lat, w.lng).takeIf { it.isKnown }
+            if (given != null) {
+                recordWaypoint(w.name, given)
+            } else {
+                lifecycleScope.launch { recordWaypoint(w.name, resolve(w.name, w.address)) }
+            }
+        }
     }
 
-    private fun waypointAt(name: String): LatLng? = knownWaypoints.firstOrNull { it.name == name }?.let { LatLng(it.lat, it.lng) }
+    /** 처음 보는 경유지면 자리를 잡고 true(같은 경유지를 두 번 기록하지 않게). */
+    private fun reserve(name: String): Boolean = synchronized(waypoints) {
+        if (waypoints.isKnown(name)) false else { waypoints.add(name, null); true }
+    }
 
+    /** 이름 → 주소 순으로 서버(VWorld 검색)에 좌표를 묻는다. 못 찾으면 null. */
+    private suspend fun resolve(name: String, address: String?): LatLng? =
+        container.api.searchPlace(name) ?: address?.takeIf { it.isNotBlank() && it != name }?.let { container.api.searchPlace(it) }
+
+    private fun recordWaypoint(name: String, at: LatLng?) {
+        synchronized(waypoints) { waypoints.add(name, at) }
+        Log.i(TAG, "waypoint added: $name at=${at ?: "unknown"}")
+        container.tripStore.addEvent(event(TripEventType.WAYPOINT_ADDED, name, at))
+    }
+
+    private fun onWaypointArrived(name: String) {
+        val first = synchronized(waypoints) { waypoints.markArrived(name) }
+        if (first) container.tripStore.addEvent(event(TripEventType.WAYPOINT_ARRIVED, name, waypoints.coordOf(name)))
+    }
+
+    /** 경유지 이벤트. 좌표를 모르면 [WaypointTracker.UNKNOWN](0,0). */
     private fun event(type: TripEventType, name: String?, at: LatLng?): TripEvent {
-        val pos = at ?: lastPoint?.latLng ?: container.tripStore.session.value?.origin ?: LatLng(0.0, 0.0)
+        val pos = at ?: WaypointTracker.UNKNOWN
         return TripEvent(type, System.currentTimeMillis(), pos.lat, pos.lng, name)
     }
 

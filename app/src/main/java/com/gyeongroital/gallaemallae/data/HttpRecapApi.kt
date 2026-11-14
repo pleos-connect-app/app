@@ -1,5 +1,6 @@
 package com.gyeongroital.gallaemallae.data
 
+import com.gyeongroital.gallaemallae.domain.LatLng
 import com.gyeongroital.gallaemallae.domain.Recap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -27,6 +28,12 @@ class HttpRecapApi(private val baseUrl: String, private val apiKey: String = "")
         request("GET", "/api/v1/geo/area?lat=$lat&lng=$lng", null, RecapJson::parseArea)
     } catch (e: ApiException) {
         null // 이름은 없어도 화면이 성립한다("현재 위치")
+    }
+
+    override suspend fun searchPlace(query: String): LatLng? = try {
+        request("GET", "/api/v1/geo/search?query=${enc(query)}", null, RecapJson::parseLatLng)
+    } catch (e: ApiException) {
+        null
     }
 
     private fun enc(s: String) = java.net.URLEncoder.encode(s, "UTF-8")

@@ -14,6 +14,7 @@ import com.gyeongroital.gallaemallae.domain.StopDetector
 import com.gyeongroital.gallaemallae.domain.TrackPoint
 import com.gyeongroital.gallaemallae.domain.TrackSimplifier
 import com.gyeongroital.gallaemallae.domain.TripEvent
+import com.gyeongroital.gallaemallae.domain.isKnown
 import com.gyeongroital.gallaemallae.domain.TripEventType
 import com.gyeongroital.gallaemallae.navi.NaviConnection
 import com.gyeongroital.gallaemallae.navi.RouteFailure
@@ -464,6 +465,7 @@ class MainViewModel(app: Application, private val c: AppContainer) : AndroidView
         val planned = listOf(s.destination.latLng) + s.events
             .filter { it.type == TripEventType.WAYPOINT_ADDED || it.type == TripEventType.WAYPOINT_ARRIVED }
             .map { LatLng(it.lat, it.lng) }
+            .filter { it.isKnown } // 좌표를 모르는 경유지(0,0)는 정차 제외 기준에서 뺀다
         return RecapSummary(
             distanceKm = Geo.pathLengthMeters(points.map { it.latLng }) / 1000.0,
             durationMin = ((endedAt - s.startedAt) / 60_000L).toInt(),

@@ -47,7 +47,8 @@ sealed interface NaviEvent {
     data class Trip(val distanceM: Int, val etaS: Int) : NaviEvent
 }
 
-data class WaypointPoint(val name: String, val lat: Double, val lng: Double)
+/** 경유지. 에뮬레이터 내비는 lat/lng를 0으로 준다 → 앱이 [name]·[address]로 서버에 좌표를 묻는다. */
+data class WaypointPoint(val name: String, val lat: Double, val lng: Double, val address: String? = null)
 
 enum class NaviConnection { CONNECTING, CONNECTED, FAILED }
 
@@ -86,7 +87,7 @@ class NaviGateway(context: Context) {
         override fun onWayPointArrived(waypointArrivedInfo: WaypointArrivedInfo) =
             emit(NaviEvent.WaypointArrived(waypointArrivedInfo.name))
         override fun onWayPointInfo(waypointInfoList: List<WaypointInfo>) =
-            emit(NaviEvent.Waypoints(waypointInfoList.map { WaypointPoint(it.name, it.latitude, it.longitude) }))
+            emit(NaviEvent.Waypoints(waypointInfoList.map { WaypointPoint(it.name, it.latitude, it.longitude, it.address) }))
         override fun onError(errorCode: NaviErrorCode) = emit(NaviEvent.Error(errorCode))
         override fun onTripInfo(tripInfo: TripInfo) = emit(NaviEvent.Trip(tripInfo.distance, tripInfo.eta))
 

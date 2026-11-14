@@ -91,4 +91,6 @@ class FakeRecapApi(
 
     /** 오프라인 개발용 가짜 서버는 지역 이름을 모른다(화면은 "현재 위치"). */
     override suspend fun areaName(lat: Double, lng: Double): AreaName? = null
+
+    override suspend fun searchPlace(query: String): com.gyeongroital.gallaemallae.domain.LatLng? = null
 }

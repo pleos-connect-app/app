@@ -24,6 +24,7 @@ data class FinishTripRequest(
  * 2. POST /api/v1/trips/{tripId}/finish  → 202
  * 3. GET  /api/v1/trips/{tripId}/recap
  * 4. GET  /api/v1/geo/area?lat=&lng=          (좌표 → 시·구·동, VWorld 키는 서버에만)
+ *    GET  /api/v1/geo/search?query=            (장소 이름·주소 → 좌표, 경유지 좌표 보완)
  *    GET  /api/v1/map/satellite/{z}/{x}/{y}.jpeg (위성 타일 — [com.gyeongroital.gallaemallae.ui.SatelliteTiles]가 직접 받음)
  */
 interface RecapApi {
@@ -33,6 +34,9 @@ interface RecapApi {
 
     /** 좌표의 시·구·동 이름. 못 찾거나 실패하면 null(화면은 "현재 위치"). 예외를 던지지 않는다. */
     suspend fun areaName(lat: Double, lng: Double): AreaName?
+
+    /** 장소 이름·주소 → 좌표. 못 찾거나 실패하면 null. 예외를 던지지 않는다. */
+    suspend fun searchPlace(query: String): com.gyeongroital.gallaemallae.domain.LatLng?
 }
 
 data class RecapStatusResult(val tripId: String, val status: com.gyeongroital.gallaemallae.domain.RecapStatus)

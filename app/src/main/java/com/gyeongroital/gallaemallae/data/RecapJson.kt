@@ -1,6 +1,7 @@
 package com.gyeongroital.gallaemallae.data
 
 import com.gyeongroital.gallaemallae.domain.Destination
+import com.gyeongroital.gallaemallae.domain.LatLng
 import com.gyeongroital.gallaemallae.domain.Recap
 import com.gyeongroital.gallaemallae.domain.RecapStatus
 import com.gyeongroital.gallaemallae.domain.RecapSummary
@@ -67,6 +68,13 @@ object RecapJson {
         val full = o.optStringOrNull("full")
         val short = o.optStringOrNull("short")
         return if (full.isNullOrBlank() || short.isNullOrBlank()) null else AreaName(full, short)
+    }
+
+    /** {"lat","lng"} — 못 찾았으면 null. */
+    fun parseLatLng(body: String): LatLng? {
+        val o = JSONObject(body)
+        if (o.isNull("lat") || o.isNull("lng") || !o.has("lat") || !o.has("lng")) return null
+        return LatLng(o.getDouble("lat"), o.getDouble("lng"))
     }
 
     /** {"code","message"} 오류 바디. 파싱 실패 시 null. */

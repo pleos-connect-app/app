@@ -66,6 +66,11 @@ class RecapJsonTest {
         assertNull(RecapJson.parseArea("""{"full":null,"short":null}"""))
     }
 
+    @Test fun `장소 검색 응답`() {
+        assertEquals(com.gyeongroital.gallaemallae.domain.LatLng(37.5262, 126.8752), RecapJson.parseLatLng("""{"lat":37.5262,"lng":126.8752}"""))
+        assertNull(RecapJson.parseLatLng("""{"lat":null,"lng":null}"""))
+    }
+
     @Test fun `오류 바디 파싱`() {
         assertEquals("TRIP_NOT_FOUND" to "trip not found: t_x", RecapJson.parseError("""{"code":"TRIP_NOT_FOUND","message":"trip not found: t_x"}"""))
         assertNull(RecapJson.parseError("<html>"))
