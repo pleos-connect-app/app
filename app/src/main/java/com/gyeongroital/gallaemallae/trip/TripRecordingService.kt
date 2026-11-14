@@ -9,6 +9,7 @@ import com.gyeongroital.gallaemallae.domain.LatLng
 import com.gyeongroital.gallaemallae.domain.TripEvent
 import com.gyeongroital.gallaemallae.domain.TripEventType
 import com.gyeongroital.gallaemallae.domain.WaypointTracker
+import com.gyeongroital.gallaemallae.domain.WaypointResolver
 import com.gyeongroital.gallaemallae.domain.isKnown
 import com.gyeongroital.gallaemallae.navi.NaviEvent
 import com.gyeongroital.gallaemallae.navi.WaypointPoint
@@ -134,9 +135,9 @@ class TripRecordingService : LifecycleService() {
         if (waypoints.isKnown(name)) false else { waypoints.add(name, null); true }
     }
 
-    /** 이름 → 주소 순으로 서버(VWorld 검색)에 좌표를 묻는다. 못 찾으면 null. */
+    /** 이름·주소로 서버(VWorld 검색)에 좌표를 묻는다(규칙은 WaypointResolver). 못 찾으면 null. */
     private suspend fun resolve(name: String, address: String?): LatLng? =
-        container.api.searchPlace(name) ?: address?.takeIf { it.isNotBlank() && it != name }?.let { container.api.searchPlace(it) }
+        WaypointResolver(container.api::searchPlace).resolve(name, address)
 
     private fun recordWaypoint(name: String, at: LatLng?) {
         synchronized(waypoints) { waypoints.add(name, at) }

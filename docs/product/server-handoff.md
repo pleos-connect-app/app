@@ -207,7 +207,7 @@ cd server && ./gradlew bootRun
 | 변경 | 내용 |
 |---|---|
 | 개인정보 | 트립이 DONE·FAILED가 되면 `trip_finish`(주행 경로)를 바로 삭제, 서버 시작 때 남은 것도 정리(`TripStore`, 테스트 추가) |
-| 정책 페이지 | `static/privacy.html` — 개인정보처리방침 + 위치정보 이용약관. 앱 동의 화면 QR이 연다. **연락처 칸 `[제출 전 입력]`을 채워야 함** |
+| 정책 페이지 | `static/privacy.html` — 개인정보처리방침 + 위치정보 이용약관. 앱 동의 화면 QR이 연다. |
 | 이름 | 영상·썸네일·공유 페이지의 "RANDOM DRIVE"/"RandomDrive"/"랜덤 드라이브" → "갈래말래", TourAPI `MobileApp=Gallaemallae` |
 | 표기 | 정차 횟수 "번" → "회"(앱과 같게) |
 | 썸네일 | 차량 결과 화면에서 읽히도록 작은 글자 키움(날짜 30, 출발지 34, 항목 이름 30, 값 48, 사진 출처 26) |
