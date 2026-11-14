@@ -4,7 +4,6 @@ import com.gyeongroital.gallaemallae.AppContainer
 import com.gyeongroital.gallaemallae.data.ApiException
 import com.gyeongroital.gallaemallae.data.AreaName
 import com.gyeongroital.gallaemallae.data.FinishTripRequest
-import com.gyeongroital.gallaemallae.data.VWorldGeocoder
 import com.gyeongroital.gallaemallae.domain.CandidatePicker
 import com.gyeongroital.gallaemallae.domain.Destination
 import com.gyeongroital.gallaemallae.domain.Geo
@@ -199,9 +198,9 @@ class MainViewModel(app: Application, private val c: AppContainer) : AndroidView
         }
     }
 
-    /** 시·구·동 이름. VWorld 지오코더(키 있을 때) → 기기 Geocoder(실차 등) 순. 둘 다 없으면 null → "현재 위치". */
+    /** 시·구·동 이름. 서버(VWorld 중계) → 기기 Geocoder(실차 등) 순. 둘 다 없으면 null → "현재 위치". */
     private suspend fun areaName(p: TrackPoint): AreaName? {
-        VWorldGeocoder.reverse(p.lat, p.lng)?.let { return it }
+        c.api.areaName(p.lat, p.lng)?.let { return it }
         return withContext(Dispatchers.IO) {
             runCatching {
                 if (!Geocoder.isPresent()) return@runCatching null

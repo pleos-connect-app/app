@@ -61,6 +61,14 @@ object RecapJson {
         )
     }
 
+    /** {"full","short"} — 못 찾았으면 둘 다 null → null. */
+    fun parseArea(body: String): AreaName? {
+        val o = JSONObject(body)
+        val full = o.optStringOrNull("full")
+        val short = o.optStringOrNull("short")
+        return if (full.isNullOrBlank() || short.isNullOrBlank()) null else AreaName(full, short)
+    }
+
     /** {"code","message"} 오류 바디. 파싱 실패 시 null. */
     fun parseError(body: String?): Pair<String, String>? = runCatching {
         val o = JSONObject(body ?: return null)

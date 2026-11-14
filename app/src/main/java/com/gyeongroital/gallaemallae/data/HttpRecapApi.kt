@@ -23,6 +23,12 @@ class HttpRecapApi(private val baseUrl: String, private val apiKey: String = "")
     override suspend fun getRecap(tripId: String): Recap =
         request("GET", "/api/v1/trips/${enc(tripId)}/recap", null, RecapJson::parseRecap)
 
+    override suspend fun areaName(lat: Double, lng: Double): AreaName? = try {
+        request("GET", "/api/v1/geo/area?lat=$lat&lng=$lng", null, RecapJson::parseArea)
+    } catch (e: ApiException) {
+        null // 이름은 없어도 화면이 성립한다("현재 위치")
+    }
+
     private fun enc(s: String) = java.net.URLEncoder.encode(s, "UTF-8")
 
     /** 응답 파싱까지 이 안에서 한다 — 형식이 깨진 응답(HTML 프록시 페이지, 필드 누락)도 ApiException으로 바뀌어 앱이 죽지 않게. */

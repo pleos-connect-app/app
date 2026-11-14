@@ -22,8 +22,10 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * 추첨 화면 배경용 위성 타일. 공간정보 오픈플랫폼(VWorld, 국토교통부) WMTS를 쓴다.
- * - 인증키는 local.properties의 `gallaemallae.vworldKey`(git 미포함). 없으면 [enabled]=false → 화면은 지도 없는 배경으로 그린다.
+ * 추첨 화면 배경용 위성 타일. 공간정보 오픈플랫폼(VWorld, 국토교통부) WMTS를 우리 서버가 중계한다
+ * (`GET /api/v1/map/satellite/{z}/{x}/{y}.jpeg`). VWorld 인증키는 APK에서 꺼낼 수 있어 앱에 두지 않는다.
+ * - 앱 내장 가짜 서버(오프라인 개발)에서는 [enabled]=false → 화면은 지도 없는 배경으로 그린다.
+ * - 서버에 키가 없거나 받지 못하면(503) 연속 실패로 꺼지고 같은 대체 화면이 된다.
  * - Pleos 단말에는 Google 지도가 없고 목적지가 모두 국내라 국내 공공 타일을 선택.
  * - 홈 화면에서 미리 받아 두고([prefetch]) 추첨 화면이 같은 요청을 이어받는다(진행 중 요청 공유).
  */
@@ -39,11 +41,12 @@ object SatelliteTiles {
     // TODO(license): VWorld 이용약관의 출처 표기 문구 최종 확인
     const val ATTRIBUTION = "지도: 브이월드(국토교통부)"
 
-    private val key = BuildConfig.VWORLD_API_KEY
+    private val baseUrl = BuildConfig.SERVER_BASE_URL.trimEnd('/')
+    private val appKey = BuildConfig.SERVER_API_KEY
     private val failures = AtomicInteger(0)
 
-    /** 키가 있고, 연속 실패(키 오류·오프라인)로 꺼지지 않았을 때만 사용. */
-    val enabled: Boolean get() = key.isNotBlank() && failures.get() < MAX_FAILURES
+    /** 실서버에 붙어 있고, 연속 실패(서버 키 없음·오프라인)로 꺼지지 않았을 때만 사용. */
+    val enabled: Boolean get() = !BuildConfig.USE_FAKE_SERVER && failures.get() < MAX_FAILURES
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val gate = Semaphore(6)
@@ -77,13 +80,14 @@ object SatelliteTiles {
     }
 
     private fun fetch(t: Tile): Bitmap? = runCatching {
-        val url = URL("https://api.vworld.kr/req/wmts/1.0.0/$key/Satellite/${t.z}/${t.y}/${t.x}.jpeg")
+        val url = URL("$baseUrl/api/v1/map/satellite/${t.z}/${t.x}/${t.y}.jpeg")
         val bytes = (url.openConnection() as HttpURLConnection).run {
             connectTimeout = TIMEOUT_MS
             readTimeout = TIMEOUT_MS
+            if (appKey.isNotBlank()) setRequestProperty("X-App-Key", appKey)
             try {
                 if (responseCode !in 200..299) error("HTTP $responseCode")
-                if (contentType?.startsWith("image/") != true) error("not an image: $contentType") // 키 오류 시 XML 응답
+                if (contentType?.startsWith("image/") != true) error("not an image: $contentType")
                 inputStream.use { input ->
                     val out = java.io.ByteArrayOutputStream()
                     val buf = ByteArray(16 * 1024)

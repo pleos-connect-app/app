@@ -75,6 +75,20 @@ class HttpRecapApiTest {
         assertEquals("앱 인증에 실패했어요", expectCode("UNAUTHORIZED") { api().getRecap("t_1") }.message)
     }
 
+    @Test fun `지역 이름은 서버에 묻고 앱 키를 붙인다`() = runTest {
+        body = """{"full":"서울특별시 금천구 시흥동","short":"금천구 시흥동"}"""
+        val area = HttpRecapApi("http://127.0.0.1:${server.address.port}", apiKey = "k-1").areaName(37.4527, 126.9037)
+        assertEquals("금천구 시흥동", area?.short)
+        assertTrue(lastRequest.startsWith("GET /api/v1/geo/area?lat=37.4527&lng=126.9037"))
+        assertEquals("k-1", lastAppKey)
+    }
+
+    @Test fun `지역 이름 실패는 예외 없이 null`() = runTest {
+        status = 429
+        body = """{"code":"RATE_LIMITED","message":"요청이 너무 많아요"}"""
+        assertEquals(null, api().areaName(37.5, 127.0))
+    }
+
     @Test fun `200인데 HTML이면 앱이 죽지 않고 BAD_RESPONSE`() = runTest {
         body = "<html>captive portal</html>"
         expectCode(ApiException.CODE_BAD_RESPONSE) { api().getRecap("t_1") }

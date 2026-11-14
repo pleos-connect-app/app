@@ -14,11 +14,10 @@ val useFakeServer = prop("gallaemallae.useFakeServer", "true").toBoolean()
 val serverBaseUrl = prop("gallaemallae.serverBaseUrl", "http://10.0.2.2:8080")
 val demoMode = prop("gallaemallae.demoMode", "false").toBoolean()
 val releaseServerBaseUrl = prop("gallaemallae.releaseServerBaseUrl", "")
-// 추첨 화면 위성 지도(VWorld) 인증키. local.properties의 gallaemallae.vworldKey(git 미포함) 또는 -P로 전달. 없으면 지도 없는 배경.
 val localProps = Properties().apply {
     rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
 }
-val vworldKey = (project.findProperty("gallaemallae.vworldKey") as String?) ?: localProps.getProperty("gallaemallae.vworldKey", "")
+// 위성 지도·시군구 이름(VWorld)은 서버가 중계한다. VWorld 인증키는 APK에서 꺼낼 수 있어 앱에 넣지 않고 서버(VWORLD_API_KEY)에만 둔다.
 // 서버 앱 키(X-App-Key 헤더). local.properties의 gallaemallae.apiKey(git 미포함) 또는 -P로 전달. 비우면 헤더를 보내지 않는다.
 val serverApiKey = (project.findProperty("gallaemallae.apiKey") as String?) ?: localProps.getProperty("gallaemallae.apiKey", "")
 // 앱 이름을 갈래말래로 바꾸며 속성 접두사가 randomdrive.* → gallaemallae.*로 바뀌었다. 옛 이름이 남아 있으면 조용히 무시되지 않게 알린다.
@@ -51,7 +50,6 @@ android {
         versionName = "0.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "VWORLD_API_KEY", "\"$vworldKey\"")
         buildConfigField("String", "SERVER_API_KEY", "\"$serverApiKey\"")
     }
 

@@ -60,6 +60,12 @@ class RecapJsonTest {
         assertEquals(RecapStatus.RUNNING, RecapJson.parseRecap("""{"tripId":"t","status":"QUEUED"}""").status)
     }
 
+    @Test fun `지역 이름 - 서버 중계 응답`() {
+        assertEquals(AreaName("서울특별시 금천구 시흥동", "금천구 시흥동"),
+            RecapJson.parseArea("""{"full":"서울특별시 금천구 시흥동","short":"금천구 시흥동"}"""))
+        assertNull(RecapJson.parseArea("""{"full":null,"short":null}"""))
+    }
+
     @Test fun `오류 바디 파싱`() {
         assertEquals("TRIP_NOT_FOUND" to "trip not found: t_x", RecapJson.parseError("""{"code":"TRIP_NOT_FOUND","message":"trip not found: t_x"}"""))
         assertNull(RecapJson.parseError("<html>"))
